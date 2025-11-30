@@ -38,8 +38,15 @@ public final class Validator<F: Formulaire> {
         errors[key] = error
     }
 
-    func clearAllErrors() {
-        errors = [:]
+    func clearAllErrors(prefix: String? = nil) {
+        if let prefix, !prefix.isEmpty {
+            let keysToRemove = errors.keys.filter { $0.hasPrefix(prefix) }
+            keysToRemove.forEach {
+                errors.removeValue(forKey: $0)
+            }
+        } else {
+            errors = [:]
+        }
     }
 
     func hasErrors() -> Bool {
@@ -83,9 +90,10 @@ public extension Formulaire {
 
 private extension Validator {
     func _validateNested<N: Formulaire>(_ nested: N, parent: String) {
+        clearAllErrors(prefix: parent)
         nested.__validator.clearAllErrors()
-        nested.__validator.parent = parent
 
+        nested.__validator.parent = parent
         nested.validate()
 
         errors.merge(nested.__validator.errors, uniquingKeysWith: { _, new in new })
