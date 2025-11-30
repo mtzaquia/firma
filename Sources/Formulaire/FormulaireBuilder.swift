@@ -29,15 +29,15 @@ public struct FormulaireBuilder<F: Formulaire> {
     let scrollProxy: ScrollViewProxy
     @FocusState.Binding var focus: String?
     let renderedFields: Wrapper<[String]>
-    let fieldPrefix: String?
-    let getErrors: () -> [String: Error]
+    let parent: String?
+    let validateFunction: () -> Void
 
     /// Validates the entire form, applying errors as per the individual ``Formulaire/validate()`` methods.
     /// - Returns: `true` if there are no errors, `false` if there are errors.
     @discardableResult
     public func validate() -> Bool {
         formulaire.__validator.clearAllErrors()
-        formulaire.validate()
+        validateFunction()
         return !formulaire.__validator.hasErrors()
     }
 
@@ -50,7 +50,7 @@ public struct FormulaireBuilder<F: Formulaire> {
     /// - Parameter field: The field path to become focused.
     public func focus<S>(on field: FieldPath<F, S>) {
         let concreteField = F.__fields[keyPath: field]
-        let fieldId = [fieldPrefix, concreteField.label].compactMap(\.self).joined(separator: ".")
+        let fieldId = [parent, concreteField.label].compactMap(\.self).joined(separator: ".")
 
         scrollProxy.scrollTo(fieldId)
         DispatchQueue.main.asyncAfter(deadline: .now()) {
@@ -94,8 +94,10 @@ public struct FormulaireBuilder<F: Formulaire> {
             scrollProxy: scrollProxy,
             focus: $focus,
             renderedFields: renderedFields,
-            fieldPrefix: concreteField.label + "[\(child.id.hashValue)]",
-            getErrors: { formulaire.__validator.errors }
+            parent: concreteField.label + "[\(child.id.hashValue)]",
+            validateFunction: {
+                formulaire.validate(field)
+            }
         )
 
         return scopedBuilder
@@ -130,8 +132,10 @@ public struct FormulaireBuilder<F: Formulaire> {
             scrollProxy: scrollProxy,
             focus: $focus,
             renderedFields: renderedFields,
-            fieldPrefix: concreteField.label,
-            getErrors: { formulaire.__validator.errors }
+            parent: concreteField.label,
+            validateFunction: {
+                formulaire.validate(field)
+            }
         )
 
         return scopedBuilder

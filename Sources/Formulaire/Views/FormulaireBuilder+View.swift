@@ -36,7 +36,7 @@ public extension FormulaireBuilder {
     ) -> some View {
         let concreteField = F.__fields[keyPath: field]
 
-        let fieldId = [fieldPrefix, concreteField.label].compactMap(\.self).joined(separator: ".")
+        let fieldId = [parent, concreteField.label].compactMap(\.self).joined(separator: ".")
         if focusable {
             renderedFields.value.append(fieldId)
         }
@@ -46,7 +46,7 @@ public extension FormulaireBuilder {
                 id: fieldId,
                 value: $formulaire[field: concreteField],
                 focus: $focus,
-                error: getErrors()[fieldId]
+                error: formulaire.__validator.errors[fieldId]
             )
         )
         .id(fieldId)

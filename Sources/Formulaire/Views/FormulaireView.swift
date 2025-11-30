@@ -47,8 +47,10 @@ public struct FormulaireView<F: Formulaire, C: View>: View {
                         scrollProxy: proxy,
                         focus: $focus,
                         renderedFields: renderedFields,
-                        fieldPrefix: nil,
-                        getErrors: { subject.__validator.errors }
+                        parent: nil,
+                        validateFunction: {
+                            subject.validate()
+                        }
                     )
                 )
             }
