@@ -20,12 +20,12 @@
 //  SOFTWARE.
 //
 
-import SwiftCompilerPlugin
-import SwiftSyntaxMacros
+import Foundation
 
-@main
-struct FormulaireMacros: CompilerPlugin {
-    var providingMacros: [Macro.Type] = [
-        FormulaireMacro.self
-    ]
+final class Wrapper<T> {
+    var value: T
+
+    init(value: T) {
+        self.value = value
+    }
 }

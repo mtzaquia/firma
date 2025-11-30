@@ -15,7 +15,6 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/swiftlang/swift-syntax", from: "602.0.0"),
-        .package(url: "https://github.com/pointfreeco/swift-macro-testing", from: "0.6.3"),
         .package(url: "https://github.com/pointfreeco/swift-identified-collections.git", from: "1.1.1"),
     ],
     targets: [
@@ -31,6 +30,17 @@ let package = Package(
                 .enableUpcomingFeature("InferIsolatedConformances"),
             ]
         ),
+        .testTarget(
+            name: "FormulaireTests",
+            dependencies: [
+                "Formulaire"
+            ],
+            swiftSettings: [
+                .defaultIsolation(MainActor.self),
+                .enableUpcomingFeature("NonisolatedNonsendingByDefault"),
+                .enableUpcomingFeature("InferIsolatedConformances"),
+            ]
+        ),
         .macro(
             name: "FormulaireMacros",
             dependencies: [
@@ -38,12 +48,6 @@ let package = Package(
                 .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
             ],
         ),
-        .testTarget(
-            name: "FormulaireMacrosTests",
-            dependencies: [
-                "FormulaireMacros",
-                .product(name: "MacroTesting", package: "swift-macro-testing")
-            ]
-        ),
     ]
 )
+

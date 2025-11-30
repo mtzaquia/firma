@@ -22,14 +22,6 @@
 
 import SwiftUI
 
-final class Wrapper<T> {
-    var value: T
-
-    init(value: T) {
-        self.value = value
-    }
-}
-
 public struct FormulaireView<F: Formulaire, C: View>: View {
     @Binding private var subject: F
     @FocusState private var focus: String?
@@ -54,6 +46,7 @@ public struct FormulaireView<F: Formulaire, C: View>: View {
                     )
                 )
             }
+#if os(iOS)
             .modify { base in
                 let info = Bundle.main.infoDictionary
                 if #available(iOS 26, *), (info?["UIDesignRequiresCompatibility"] as? Bool) != true {
@@ -93,6 +86,7 @@ public struct FormulaireView<F: Formulaire, C: View>: View {
                         }
                 }
             }
+#endif
         }
     }
 

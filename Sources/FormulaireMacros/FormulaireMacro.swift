@@ -24,7 +24,6 @@ import Foundation
 import SwiftSyntaxMacros
 import SwiftSyntax
 import SwiftDiagnostics
-import SwiftSyntaxBuilder
 
 struct FormulaireDiagnosticMessage: DiagnosticMessage {
     let message: String
