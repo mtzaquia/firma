@@ -83,7 +83,7 @@ public extension FormulaireBuilder {
     /// - Parameters:
     ///   - field: The field path that is to be mutated in the subject.
     ///   - label: The user-facing label for the field.
-    func textField(for field: FieldPath<F, String>, label: String) -> some View {
+    func textField(for field: FieldPath<F, String>, label: String, placeholder: String? = nil) -> some View {
         control(for: field, focusable: true) { builder in
             VStack(alignment: .leading) {
                 Text(label)
@@ -94,8 +94,13 @@ public extension FormulaireBuilder {
                     )
                     .font(.caption.bold())
                     .textCase(.uppercase)
-                TextField(label, text: builder.$value, prompt: Text("Enter \(label)"))
-                    .focused(builder.$focus, equals: builder.id)
+                
+                TextField(
+                    label,
+                    text: builder.$value,
+                    prompt: Text(placeholder ?? "Enter \(label.localizedCapitalized)")
+                )
+                .focused(builder.$focus, equals: builder.id)
 
                 ErrorText(error: builder.error)
             }
