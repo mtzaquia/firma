@@ -122,12 +122,60 @@ public struct FormulaireBuilder<F: Formulaire> {
     public func scope<S: Formulaire>(_ field: FieldPath<F, S>) -> FormulaireBuilder<S> {
         let concreteField = F.__fields[keyPath: field]
 
-        var child = concreteField.get(formulaire)
+        let scopedBuilder = FormulaireBuilder<S>(
+            formulaire: Binding(
+                get: {
+                    concreteField.get(formulaire)
+                },
+                set: {
+                    concreteField.set(formulaire, $0)
+                }
+            ),
+            scrollProxy: scrollProxy,
+            focus: $focus,
+            renderedFields: renderedFields,
+            parent: concreteField.label,
+            validateFunction: {
+                formulaire.validate(field)
+            }
+        )
+
+        return scopedBuilder
+    }
+
+    /// Scopes the builder to a nested optional subject on the top-level subject, allowing you to nest fields inline. Use this method when the nested object is
+    /// optional.
+    ///
+    /// ```swift
+    /// form.textField(for: \.name, label: "Address name")
+    ///
+    /// Section {
+    ///   if let scoped = form.scope(\.optionalAddress) {
+    ///     scoped.textField(for: \.addressLine1, label: "Address line 1")
+    ///     scoped.textField(for: \.addressLine2, label: "Address line 1")
+    ///     scoped.textField(for: \.zipCode, label: "ZIP code")
+    ///     scoped.textField(for: \.city, label: "City")
+    ///   }
+    /// }
+    /// ```
+    ///
+    /// - Parameters:
+    ///   - field: The nested field in which the builder should be scoped to.
+    public func scope<S: Formulaire>(_ field: FieldPath<F, Optional<S>>) -> FormulaireBuilder<S>? where Optional<S>: Formulaire {
+        let concreteField = F.__fields[keyPath: field]
+
+        guard let child = concreteField.get(formulaire) else {
+            return nil
+        }
 
         let scopedBuilder = FormulaireBuilder<S>(
             formulaire: Binding(
-                get: { child },
-                set: { child = $0 }
+                get: {
+                    child
+                },
+                set: {
+                    concreteField.set(formulaire, $0)
+                }
             ),
             scrollProxy: scrollProxy,
             focus: $focus,
@@ -141,5 +189,4 @@ public struct FormulaireBuilder<F: Formulaire> {
         return scopedBuilder
     }
 }
-
 

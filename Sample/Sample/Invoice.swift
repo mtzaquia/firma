@@ -30,6 +30,7 @@ final class Invoice: CustomStringConvertible {
     var date: Date = Date()
     var client: Client?
     var items: IdentifiedArrayOf<InvoiceItem> = []
+    var notes: String = ""
 
     func validate() {
         if number < 1 {
@@ -110,6 +111,7 @@ struct InvoiceForm: View {
         FormulaireView(editing: $invoice) { form in
             Section {
                 form.stepper(for: \.number, label: "Invoice number")
+                form.textField(for: \.notes, label: "Notes", placeholder: "Internal notes")
                 form.control(for: \.date, focusable: false) { builder in
                     VStack {
                         DatePicker("Date", selection: builder.$value, displayedComponents: .date)
@@ -156,6 +158,7 @@ struct InvoiceForm: View {
                     ForEach(invoice.items) { item in
                         let scoped = form.scope(\.items, for: item)
                         scoped.textField(for: \.summary, label: "Summary")
+                        scoped.textField(for: \.description, label: "Description")
                     }
                     .onDelete { offsets in
                         invoice.items.remove(atOffsets: offsets)

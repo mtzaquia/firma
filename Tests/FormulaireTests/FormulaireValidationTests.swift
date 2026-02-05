@@ -311,4 +311,48 @@ struct FormulaireValidationAndFocusTests {
         #expect(!keys.contains("optionalAddress"))
         #expect(!keys.contains("optionalAddress.street"))
     }
+
+    // MARK: Focus order with dynamic IdentifiedArray ids
+    @Test("focus order follows IdentifiedArray ids in the provided field list")
+    func testFocusOrderWithIdentifiedArrayIds() async throws {
+        let ph1 = Phone()
+        let ph2 = Phone()
+
+        let fields = [
+            "name",
+            "phones[\(ph1.id.hashValue)].label",
+            "phones[\(ph2.id.hashValue)].label",
+            "address.street"
+        ]
+
+        #expect(FormulaireView<Person, EmptyView>.nextFocusId(in: fields, current: "name") == fields[1])
+        #expect(FormulaireView<Person, EmptyView>.nextFocusId(in: fields, current: fields[1]) == fields[2])
+        #expect(FormulaireView<Person, EmptyView>.previousFocusId(in: fields, current: fields[2]) == fields[1])
+        #expect(FormulaireView<Person, EmptyView>.previousFocusId(in: fields, current: "name") == nil)
+        #expect(FormulaireView<Person, EmptyView>.nextFocusId(in: fields, current: "address.street") == nil)
+    }
+
+    @Test("focus order respects list reordering with new dynamic ids")
+    func testFocusOrderWithReorderedIdentifiedArrayIds() async throws {
+        let ph1 = Phone()
+        let ph2 = Phone()
+
+        let initial = [
+            "name",
+            "phones[\(ph1.id.hashValue)].label",
+            "phones[\(ph2.id.hashValue)].label",
+            "address.street"
+        ]
+
+        let reordered = [
+            "name",
+            "phones[\(ph2.id.hashValue)].label",
+            "phones[\(ph1.id.hashValue)].label",
+            "address.street"
+        ]
+
+        #expect(FormulaireView<Person, EmptyView>.nextFocusId(in: initial, current: "name") == initial[1])
+        #expect(FormulaireView<Person, EmptyView>.nextFocusId(in: reordered, current: "name") == reordered[1])
+        #expect(FormulaireView<Person, EmptyView>.previousFocusId(in: reordered, current: reordered[2]) == reordered[1])
+    }
 }

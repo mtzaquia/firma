@@ -64,6 +64,14 @@ public extension Formulaire {
     ///   - field: The field in which the error is attached.
     func addError<V>(_ error: Error, for field: FieldPath<Self, V>) {
         let concreteField = Self.__fields[keyPath: field]
+
+        let nested = concreteField.get(self)
+        if let nested = nested as? Optional<Formulaire>, nested == nil {
+            print(
+                "[Formulaire] Validating a nil, nested object does nothing: \\\(type(of: self)).\(concreteField.label)"
+            )
+        }
+
         __validator.addError(error, for: concreteField.label)
     }
 

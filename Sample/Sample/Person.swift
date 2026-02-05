@@ -28,6 +28,8 @@ import SwiftUI
 final class Person {
     var name: String = ""
     var address: Address = Address()
+    var optionalAddress: Address?
+    var phones: IdentifiedArrayOf<Phone> = []
 
     var computedProperty: String { "Can't be used because it's computed" }
     let readOnlyProperty: String = "Can't be used because it's `let`"
@@ -38,6 +40,35 @@ final class Person {
         }
 
         validate(\.address)
+
+        if phones.isEmpty {
+            addError("At least one phone is required", for: \.phones)
+        }
+
+        validate(\.phones)
+
+        if optionalAddress == nil {
+            addError("An alternate address is required", for: \.optionalAddress)
+        }
+
+        validate(\.optionalAddress)
+    }
+}
+
+@Observable @Formulaire
+final class Phone: Identifiable {
+    var id: String = UUID().uuidString
+    var label: String = ""
+    var number: String = ""
+
+    func validate() {
+        if label.isEmpty {
+            addError("Label is required", for: \.label)
+        }
+
+        if number.isEmpty {
+            addError("Phone number is required", for: \.number)
+        }
     }
 }
 
@@ -64,9 +95,9 @@ final class Address {
 }
 
 struct PersonForm: View {
-    @State var person = Person()
+    @State private var person = Person()
 
-    @State var success = false
+    @State private var success = false
 
     var body: some View {
         FormulaireView(editing: $person) { form in
@@ -77,12 +108,58 @@ struct PersonForm: View {
             Section {
                 let scoped = form.scope(\.address)
                 scoped.textField(for: \.addressLine1, label: "Address line 1")
-                scoped.textField(for: \.addressLine2, label: "Address line 1")
+                scoped.textField(for: \.addressLine2, label: "Address line 2")
                 scoped.textField(for: \.zipCode, label: "ZIP code")
                 scoped.textField(for: \.city, label: "City")
             }
 
             Section {
+                if person.optionalAddress == nil {
+                    Button("Add alternate address") {
+                        person.optionalAddress = Address()
+                    }
+                } else if let scoped = form.scope(\.optionalAddress) {
+                    scoped.textField(for: \.addressLine1, label: "Alt address line 1")
+                    scoped.textField(for: \.addressLine2, label: "Alt address line 2")
+                    scoped.textField(for: \.zipCode, label: "Alt ZIP code")
+                    scoped.textField(for: \.city, label: "Alt city")
+
+                    Button("Remove alternate address") {
+                        person.optionalAddress = nil
+                    }
+                    .foregroundStyle(.red)
+                }
+            } header: {
+                Text("Alternate Address")
+            }
+
+            form.content(for: \.phones) { error in
+                Section {
+                    ForEach(person.phones) { phone in
+                        let scoped = form.scope(\.phones, for: phone)
+                        scoped.textField(for: \.label, label: "Label")
+                        scoped.textField(for: \.number, label: "Number")
+                    }
+                    .onDelete { offsets in
+                        person.phones.remove(atOffsets: offsets)
+                    }
+
+                    Button("Add phone") {
+                        person.phones.append(Phone())
+                    }
+                } footer: {
+                    if let error {
+                        Text(error.localizedDescription)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+
+            Section {
+                LabeledContent("Has errors", value: person.__validator.errors.isEmpty ? "No" : "Yes")
+                Text(person.__validator.errors.description)
+
                 Button("Validate") {
                     success = form.validate()
 
@@ -94,9 +171,9 @@ struct PersonForm: View {
                 }
             }
         }
+        .animation(.snappy, value: person.optionalAddress == nil)
         .alert("Success!", isPresented: $success) {
             Button("Ok") { success = false }
         }
     }
 }
-
