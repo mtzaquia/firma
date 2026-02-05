@@ -11,7 +11,7 @@ Formulaire is available via Swift Package Manager, and requires `Swift 6.2`.
 
 ```swift
 dependencies: [
-  .package(url: "https://github.com/mtzaquia/formulaire.git", from: "1.2.0"),
+  .package(url: "https://github.com/mtzaquia/formulaire.git", from: "1.3.0"),
 ],
 ```
 
