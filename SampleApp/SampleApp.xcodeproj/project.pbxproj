@@ -21,8 +21,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		BD70AA102FE2A00000AA0001 /* SampleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SampleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
-		BD91AE592E2FB5F200FF1805 /* Sample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sample.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		BD70AA102FE2A00000AA0001 /* SampleAppUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SampleAppUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BD91AE592E2FB5F200FF1805 /* SampleApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SampleApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -69,8 +69,8 @@
 		BD91AE5A2E2FB5F200FF1805 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				BD91AE592E2FB5F200FF1805 /* Sample.app */,
-				BD70AA102FE2A00000AA0001 /* SampleUITests.xctest */,
+				BD91AE592E2FB5F200FF1805 /* SampleApp.app */,
+				BD70AA102FE2A00000AA0001 /* SampleAppUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -78,9 +78,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		BD70AA142FE2A00000AA0001 /* SampleUITests */ = {
+		BD70AA142FE2A00000AA0001 /* SampleAppUITests */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = BD70AA152FE2A00000AA0001 /* Build configuration list for PBXNativeTarget "SampleUITests" */;
+			buildConfigurationList = BD70AA152FE2A00000AA0001 /* Build configuration list for PBXNativeTarget "SampleAppUITests" */;
 			buildPhases = (
 				BD70AA162FE2A00000AA0001 /* Sources */,
 				BD70AA122FE2A00000AA0001 /* Frameworks */,
@@ -94,16 +94,16 @@
 			fileSystemSynchronizedGroups = (
 				BD70AA112FE2A00000AA0001 /* SampleUITests */,
 			);
-			name = SampleUITests;
+			name = SampleAppUITests;
 			packageProductDependencies = (
 			);
 			productName = SampleUITests;
-			productReference = BD70AA102FE2A00000AA0001 /* SampleUITests.xctest */;
+			productReference = BD70AA102FE2A00000AA0001 /* SampleAppUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
-		BD91AE582E2FB5F200FF1805 /* Sample */ = {
+		BD91AE582E2FB5F200FF1805 /* SampleApp */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = BD91AE642E2FB5F300FF1805 /* Build configuration list for PBXNativeTarget "Sample" */;
+			buildConfigurationList = BD91AE642E2FB5F300FF1805 /* Build configuration list for PBXNativeTarget "SampleApp" */;
 			buildPhases = (
 				BD91AE552E2FB5F200FF1805 /* Sources */,
 				BD91AE562E2FB5F200FF1805 /* Frameworks */,
@@ -116,12 +116,12 @@
 			fileSystemSynchronizedGroups = (
 				BD91AE5B2E2FB5F200FF1805 /* SampleApp */,
 			);
-			name = Sample;
+			name = SampleApp;
 			packageProductDependencies = (
 				BD91AE682E2FB62000FF1805 /* Formulaire */,
 			);
 			productName = Sample;
-			productReference = BD91AE592E2FB5F200FF1805 /* Sample.app */;
+			productReference = BD91AE592E2FB5F200FF1805 /* SampleApp.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -143,7 +143,7 @@
 					};
 				};
 			};
-			buildConfigurationList = BD91AE542E2FB5F200FF1805 /* Build configuration list for PBXProject "Sample" */;
+			buildConfigurationList = BD91AE542E2FB5F200FF1805 /* Build configuration list for PBXProject "SampleApp" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -160,8 +160,8 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				BD91AE582E2FB5F200FF1805 /* Sample */,
-				BD70AA142FE2A00000AA0001 /* SampleUITests */,
+				BD91AE582E2FB5F200FF1805 /* SampleApp */,
+				BD70AA142FE2A00000AA0001 /* SampleAppUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -203,7 +203,7 @@
 /* Begin PBXTargetDependency section */
 		BD70AA182FE2A00000AA0001 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = BD91AE582E2FB5F200FF1805 /* Sample */;
+			target = BD91AE582E2FB5F200FF1805 /* SampleApp */;
 			targetProxy = BD70AA132FE2A00000AA0001 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
@@ -391,6 +391,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Formulaire;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -437,6 +438,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Formulaire;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -472,7 +474,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		BD70AA152FE2A00000AA0001 /* Build configuration list for PBXNativeTarget "SampleUITests" */ = {
+		BD70AA152FE2A00000AA0001 /* Build configuration list for PBXNativeTarget "SampleAppUITests" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				BD70AA192FE2A00000AA0001 /* Debug */,
@@ -481,7 +483,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		BD91AE542E2FB5F200FF1805 /* Build configuration list for PBXProject "Sample" */ = {
+		BD91AE542E2FB5F200FF1805 /* Build configuration list for PBXProject "SampleApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				BD91AE622E2FB5F300FF1805 /* Debug */,
@@ -490,7 +492,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		BD91AE642E2FB5F300FF1805 /* Build configuration list for PBXNativeTarget "Sample" */ = {
+		BD91AE642E2FB5F300FF1805 /* Build configuration list for PBXNativeTarget "SampleApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				BD91AE652E2FB5F300FF1805 /* Debug */,
