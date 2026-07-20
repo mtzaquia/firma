@@ -64,11 +64,11 @@ nonisolated final class SampleUITests: XCTestCase {
         dismissKeyboard()
 
         app.buttons[A11y.nestingAddAlternate].tap()
-        XCTAssertTrue(app.buttons[A11y.nestingRemoveAlternate].waitForExistence(timeout: 2))
+        let removeAlternate = app.buttons[A11y.nestingRemoveAlternate]
+        XCTAssertTrue(scrollUntilExists(removeAlternate, direction: .up))
         app.swipeUp()
         XCTAssertTrue(app.textFields[A11y.nestingAlternateCountry].waitForExistence(timeout: 2))
 
-        let removeAlternate = app.buttons[A11y.nestingRemoveAlternate]
         XCTAssertTrue(scrollUntilHittable(removeAlternate, direction: .up))
         removeAlternate.tap()
         XCTAssertFalse(removeAlternate.waitForExistence(timeout: 2))

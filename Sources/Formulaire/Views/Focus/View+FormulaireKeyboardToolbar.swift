@@ -29,10 +29,8 @@ extension View {
         let isVisible = focusCoordinator.focus.wrappedValue != nil
         let info = Bundle.main.infoDictionary
         if #available(iOS 26, *), (info?["UIDesignRequiresCompatibility"] as? Bool) != true {
-            // An empty safeAreaBar retains a system-owned hit region. An inset
-            // collapses fully after dismissal while preserving focus identity.
             safeAreaInset(edge: .bottom, spacing: 0) {
-                ZStack {
+                Group {
                     if isVisible {
                         FormulaireKeyboardControls(
                             focusCoordinator: focusCoordinator,
@@ -44,6 +42,7 @@ extension View {
                         .padding([.horizontal, .bottom])
                     }
                 }
+                .allowsHitTesting(isVisible)
                 .animation(.snappy, value: isVisible)
             }
         } else {
