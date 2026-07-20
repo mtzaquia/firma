@@ -1,5 +1,5 @@
 //
-//  Copyright (c) 2025 @mtzaquia
+//  Copyright (c) 2026 @mtzaquia
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -21,29 +21,19 @@
 //
 
 import Foundation
-import SwiftSyntaxMacros
-import SwiftSyntax
 import SwiftDiagnostics
+import SwiftSyntax
+import SwiftSyntaxMacros
 
 struct FormulaireDiagnosticMessage: DiagnosticMessage {
     let message: String
     let diagnosticID: MessageID
     let severity: DiagnosticSeverity
 
-    init(message: String, severity: DiagnosticSeverity = .warning) {
+    init(id: String, message: String, severity: DiagnosticSeverity = .error) {
         self.message = message
         self.severity = severity
-        self.diagnosticID = MessageID(domain: "FormulaireMacro", id: "FormulaireDiagnostic")
-    }
-}
-
-struct FormulaireFixItMessage: FixItMessage {
-    let message: String
-    let fixItID: MessageID
-
-    init(message: String, id: String = "FormulaireFixIt") {
-        self.message = message
-        self.fixItID = MessageID(domain: "FormulaireMacro", id: id)
+        self.diagnosticID = MessageID(domain: "FormulaireMacro", id: id)
     }
 }
 
@@ -54,33 +44,18 @@ public struct FormulaireMacro: MemberMacro, ExtensionMacro {
         providingExtensionsOf type: some TypeSyntaxProtocol,
         conformingTo protocols: [TypeSyntax],
         in context: some MacroExpansionContext
-    ) throws -> [SwiftSyntax.ExtensionDeclSyntax] {
-        if declaration.as(ClassDeclSyntax.self) == nil {
-            context.diagnose(Diagnostic(
-                node: Syntax(declaration),
-                message: FormulaireDiagnosticMessage(
-                    message: "@Formulaire can only be applied to classes.",
-                    severity: .error
-                )
-            ))
+    ) throws -> [ExtensionDeclSyntax] {
+        guard declaration.is(ClassDeclSyntax.self), hasObservableAttribute(declaration) else {
             return []
         }
 
-        if let inheritanceClause = declaration.inheritanceClause,
-           inheritanceClause.inheritedTypes.contains(
-            where: {
-                ["Formulaire"].contains($0.type.trimmedDescription)
-            }
-           )
-        {
+        if declaration.inheritanceClause?.inheritedTypes.contains(where: {
+            $0.type.trimmedDescription.split(separator: ".").last == "Formulaire"
+        }) == true {
             return []
         }
 
-        return [
-            try ExtensionDeclSyntax(
-                "extension \(type.trimmed): Formulaire {}"
-            )
-        ]
+        return [try ExtensionDeclSyntax("extension \(type.trimmed): Formulaire {}")]
     }
 
     public static func expansion(
@@ -89,153 +64,142 @@ public struct FormulaireMacro: MemberMacro, ExtensionMacro {
         conformingTo: [TypeSyntax],
         in context: some MacroExpansionContext
     ) throws -> [DeclSyntax] {
-        // Ensure macro is only applied to classes
-        if declaration.as(ClassDeclSyntax.self) == nil {
+        guard let classDeclaration = declaration.as(ClassDeclSyntax.self) else {
             context.diagnose(Diagnostic(
                 node: Syntax(declaration),
                 message: FormulaireDiagnosticMessage(
-                    message: "@Formulaire can only be applied to classes.",
-                    severity: .error
+                    id: "class-only",
+                    message: "@Formulaire can only be applied to classes."
                 )
             ))
             return []
         }
 
-        // Determine access level of the attached type
-        let accessLevels = ["open", "public", "internal", "private", "fileprivate"]
-        let accessLevel = declaration.modifiers.first(where: { mod in
-            accessLevels.contains(mod.name.text)
-        })?.name.text ?? "internal"
-
-        // Extract the type name from the declaration
-        let typeName: String = (declaration.as(ClassDeclSyntax.self)?.name.text) ?? "Self"
-
-        // Check if the type is annotated with @Observable
-        let hasObservable = declaration.attributes.contains { attr in
-            if let attrId = attr.as(AttributeSyntax.self)?.attributeName.as(IdentifierTypeSyntax.self)?.name.text {
-                return attrId == "Observable"
-            }
-            return false
-        }
-        if !hasObservable {
+        guard hasObservableAttribute(declaration) else {
             context.diagnose(Diagnostic(
                 node: Syntax(declaration),
                 message: FormulaireDiagnosticMessage(
-                    message: "Types using @Formulaire should also be annotated with @Observable.",
-                    severity: .error
+                    id: "requires-observable",
+                    message: "Types using @Formulaire must also be annotated with @Observable."
                 )
             ))
+            return []
         }
 
-        // Collect writable stored properties (exclude computed properties and immutable lets)
-        let properties = declaration.memberBlock.members.compactMap { member -> VariableDeclSyntax? in
-            guard let varDecl = member.decl.as(VariableDeclSyntax.self) else { return nil }
+        let typeAccess = accessLevel(of: declaration.modifiers)
+        let witnessAccess = exportedAccess(typeAccess)
+        let typeName = classDeclaration.name.text
+        let genericArguments = classDeclaration.genericParameterClause?.parameters
+            .map(\.name.text)
+            .joined(separator: ", ")
+        let typeReference = genericArguments.map { "\(typeName)<\($0)>" } ?? typeName
 
-            // Exclude static/class properties
-            if varDecl.modifiers.contains(where: { $0.name.text == "static" || $0.name.text == "class" }) {
-                return nil
+        var generatedFields: [String] = []
+
+        for member in declaration.memberBlock.members {
+            guard let variable = member.decl.as(VariableDeclSyntax.self), isInstanceVariable(variable) else {
+                continue
             }
 
-            // Only consider `var` declarations (skip `let`)
-            if varDecl.bindingSpecifier.tokenKind != .keyword(.var) {
-                return nil
-            }
-
-            // We only support exactly one binding per declaration for now
-            guard varDecl.bindings.count == 1, let binding = varDecl.bindings.first else { return nil }
-
-            // Exclude computed properties: they have an accessor block without `set`
-            if let accessorBlock = binding.accessorBlock {
-                switch accessorBlock.accessors {
-                case .accessors(let list):
-                    // If there is a setter, it's writable; otherwise it's read-only computed
-                    let hasSetter = list.contains(where: { accessor in
-                        if case .keyword(let keyword) = accessor.accessorSpecifier.tokenKind {
-                            return keyword == .set
-                        }
-                        return false
-                    })
-                    if !hasSetter { return nil }
-                case .getter:
-                    // Explicit getter-only
-                    return nil
-                }
-            }
-
-            // If there is no accessor block, it's a stored property (writable by default for `var`)
-            return varDecl
-        }
-
-        // Emit an error if any property uses a plain Swift array ([T] or Array<T>) and propose a fix-it
-        for varDecl in properties {
-            guard let binding = varDecl.bindings.first,
-                  let typeAnnotation = binding.typeAnnotation,
-                  let typeAnnotationRaw = typeAnnotation.type.description
-                .trimmingCharacters(in: .whitespacesAndNewlines) as String? else { continue }
-
-            let isBracketArray = typeAnnotationRaw.hasPrefix("[") && typeAnnotationRaw.hasSuffix("]")
-            let isGenericArray = typeAnnotationRaw.hasPrefix("Array<") && typeAnnotationRaw.hasSuffix(">")
-
-            // Extract element type for fix-it
-            var elementType: String? = nil
-            if isBracketArray {
-                let inner = String(typeAnnotationRaw.dropFirst().dropLast()).trimmingCharacters(in: .whitespacesAndNewlines)
-                elementType = inner.isEmpty ? nil : inner
-            } else if isGenericArray {
-                let inner = String(typeAnnotationRaw.dropFirst("Array<".count).dropLast()).trimmingCharacters(in: .whitespacesAndNewlines)
-                elementType = inner.isEmpty ? nil : inner
-            }
-
-            if isBracketArray || isGenericArray {
-                let message = FormulaireDiagnosticMessage(
-                    message: "Formulaire does not support plain Swift arrays for form fields. Use IdentifiedArrayOf<Element> or IdentifiedArray<ID, Element> instead of [Element]/Array<Element>.",
-                    severity: .error
-                )
-
-                if let elem = elementType {
-                    let replacement = TypeSyntax(stringLiteral: "IdentifiedArrayOf<\(elem)> ")
-                    let fixIt = FixIt(
-                        message: FormulaireFixItMessage(message: "Replace with IdentifiedArrayOf<\(elem)>", id: "ReplaceArrayWithIdentifiedArray"),
-                        changes: [
-                            .replace(oldNode: Syntax(typeAnnotation.type), newNode: Syntax(replacement))
-                        ]
-                    )
-                    let diagnostic = Diagnostic(node: Syntax(typeAnnotation.type), message: message, fixIts: [fixIt])
-                    context.diagnose(diagnostic)
-                } else {
+            let fallbackType = variable.bindings.last?.typeAnnotation?.type.trimmedDescription
+            for binding in variable.bindings where isWritable(binding) {
+                guard let identifier = binding.pattern.as(IdentifierPatternSyntax.self)?.identifier.text else {
                     context.diagnose(Diagnostic(
-                        node: Syntax(varDecl),
-                        message: message
+                        node: Syntax(binding.pattern),
+                        message: FormulaireDiagnosticMessage(
+                            id: "unsupported-pattern",
+                            message: "Formulaire fields must use a simple property name."
+                        )
                     ))
+                    continue
+                }
+
+                let propertyAccess = exportedAccess(accessLevel(of: variable.modifiers))
+                let type = binding.typeAnnotation?.type.trimmedDescription
+                    ?? (binding.initializer == nil ? fallbackType : nil)
+
+                if !propertyAccess.isEmpty, type == nil {
+                    context.diagnose(Diagnostic(
+                        node: Syntax(binding),
+                        message: FormulaireDiagnosticMessage(
+                            id: "public-field-requires-type",
+                            message: "Public Formulaire fields require an explicit type annotation so their generated field metadata can also be public."
+                        )
+                    ))
+                    continue
+                }
+
+                let accessPrefix = propertyAccess.isEmpty ? "" : "\(propertyAccess) "
+                if let type {
+                    generatedFields.append(
+                        "\(accessPrefix)var \(identifier): FormulaireField<\(typeReference), \(type)> { FormulaireField(label: \"\(identifier)\", keyPath: \\\(typeReference).\(identifier)) }"
+                    )
+                } else {
+                    generatedFields.append(
+                        "let \(identifier) = FormulaireField(label: \"\(identifier)\", keyPath: \\\(typeReference).\(identifier))"
+                    )
                 }
             }
         }
 
-        let fieldsStructProperties = properties.compactMap { varDecl -> String? in
-            guard let binding = varDecl.bindings.first,
-                  let identifier = binding.pattern.as(IdentifierPatternSyntax.self)?.identifier.text else {
-                return nil
-            }
-            // Require a type annotation to generate a proper field type
-            guard let typeAnnotation = binding.typeAnnotation?.type.description.trimmingCharacters(in: .whitespacesAndNewlines), !typeAnnotation.isEmpty else {
-                return nil
-            }
-            return "var \(identifier): FormulaireField<\(typeName), \(typeAnnotation)> { FormulaireField(label: \"\(identifier)\", keyPath: \\\((typeName)).\(identifier)) }"
-        }.joined(separator: "\n        ")
-
-        let fieldsStructDecl = DeclSyntax(stringLiteral:
+        let witnessPrefix = witnessAccess.isEmpty ? "" : "\(witnessAccess) "
+        let fields = generatedFields.joined(separator: "\n")
+        return [DeclSyntax(stringLiteral:
             """
-            \(accessLevel) struct Fields {
-                \(fieldsStructProperties)
+            \(witnessPrefix)struct Fields {
+            \(fields)
             }
-            
+
+            \(witnessPrefix)static var __fields: Fields { Fields() }
+
             @ObservationIgnored
-            \(accessLevel) static var __fields: Fields = Fields()
-            \(accessLevel) var __validator = Validator<\(typeName)>()
+            \(witnessPrefix)let __validator = Validator()
             """
-        )
-
-        return [fieldsStructDecl]
+        )]
     }
 }
 
+private extension FormulaireMacro {
+    static func hasObservableAttribute(_ declaration: some DeclGroupSyntax) -> Bool {
+        declaration.attributes.contains { element in
+            guard let attribute = element.as(AttributeSyntax.self) else { return false }
+            return attribute.attributeName.trimmedDescription.split(separator: ".").last == "Observable"
+        }
+    }
+
+    static func accessLevel(of modifiers: DeclModifierListSyntax) -> String {
+        let supported = ["open", "public", "package", "internal", "fileprivate", "private"]
+        return modifiers.first(where: { supported.contains($0.name.text) })?.name.text ?? ""
+    }
+
+    static func exportedAccess(_ access: String) -> String {
+        switch access {
+        case "open", "public": "public"
+        case "package": "package"
+        default: ""
+        }
+    }
+
+    static func isInstanceVariable(_ variable: VariableDeclSyntax) -> Bool {
+        guard variable.bindingSpecifier.tokenKind == .keyword(.var) else { return false }
+        return !variable.modifiers.contains(where: {
+            $0.name.tokenKind == .keyword(.static) || $0.name.tokenKind == .keyword(.class)
+        })
+    }
+
+    static func isWritable(_ binding: PatternBindingSyntax) -> Bool {
+        guard let accessorBlock = binding.accessorBlock else {
+            return true
+        }
+
+        switch accessorBlock.accessors {
+        case .getter:
+            return false
+        case .accessors(let accessors):
+            return accessors.contains { accessor in
+                let name = accessor.accessorSpecifier.text
+                return name == "set" || name == "_modify" || name == "willSet" || name == "didSet"
+            }
+        }
+    }
+}

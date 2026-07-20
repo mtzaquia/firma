@@ -1,5 +1,5 @@
 //
-//  Copyright (c) 2025 @mtzaquia
+//  Copyright (c) 2026 @mtzaquia
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -22,72 +22,59 @@
 
 import SwiftUI
 
+/// A convenience container that renders Formulaire content inside a SwiftUI `Form`.
 public struct FormulaireView<F: Formulaire, C: View>: View {
     @Binding private var subject: F
-    @FocusState private var focus: String?
-
     private let builder: (FormulaireBuilder<F>) -> C
-    private let renderedFields: Wrapper<[String]> = .init(value: [])
 
     public var body: some View {
-        ScrollViewReader { proxy in
-            let _ = renderedFields.value.removeAll()
+        FormulaireHost(subject: $subject) { form in
             Form {
-                builder(
-                    FormulaireBuilder<F>(
-                        formulaire: $subject,
-                        scrollProxy: proxy,
-                        focus: $focus,
-                        renderedFields: renderedFields,
-                        parent: nil,
-                        validateFunction: {
-                            subject.validate()
-                        }
-                    )
-                )
+                builder(form)
             }
-#if os(iOS)
-            .modify { base in
-                let info = Bundle.main.infoDictionary
-                if #available(iOS 26, *), (info?["UIDesignRequiresCompatibility"] as? Bool) != true {
-                    base
-                        .safeAreaBar(edge: .bottom) {
-                            if focus != nil {
-                                HStack {
-                                    previousButton(proxy: proxy)
-                                        .frame(width: 34, height: 40)
-                                    nextButton(proxy: proxy)
-                                        .frame(width: 34, height: 40)
-                                    Spacer(minLength: .zero)
-                                    doneButton(.iconOnly)
-                                        .frame(width: 34, height: 40)
-                                }
-                                .font(.title2)
-                                .padding(.horizontal, 4)
-                                .frame(height: 48)
-                                .glassEffect(.clear.interactive())
-                                .padding([.horizontal, .bottom])
-                                .tint(.primary)
-                                .transition(.blurReplace)
-                            }
-                        }
-                } else {
-                    base
-                        .toolbar {
-                            ToolbarItemGroup(placement: .keyboard) {
-                                HStack {
-                                    previousButton(proxy: proxy)
-                                    nextButton(proxy: proxy)
-                                    Color.clear.frame(maxWidth: .infinity)
-                                    doneButton(.titleOnly)
-                                        .bold()
-                                }
-                            }
-                        }
-                }
-            }
-#endif
         }
+    }
+
+    public init(
+        editing subject: Binding<F>,
+        @ViewBuilder builder: @escaping (FormulaireBuilder<F>) -> C
+    ) {
+        self._subject = subject
+        self.builder = builder
+    }
+
+    static func nextFocusId(
+        in fields: [FormulairePath],
+        current: FormulairePath?
+    ) -> FormulairePath? {
+        FormulaireFocusOrder.next(in: fields, current: current)
+    }
+
+    static func previousFocusId(
+        in fields: [FormulairePath],
+        current: FormulairePath?
+    ) -> FormulairePath? {
+        FormulaireFocusOrder.previous(in: fields, current: current)
+    }
+}
+
+/// Hosts Formulaire controls without imposing a `Form`, `List`, or scroll layout.
+///
+/// Use this variant when an app needs to supply its own container:
+///
+/// ```swift
+/// FormulaireContent(editing: $model) { form in
+///   ScrollView {
+///     VStack { form.textField(for: \.name, label: "Name") }
+///   }
+/// }
+/// ```
+public struct FormulaireContent<F: Formulaire, C: View>: View {
+    @Binding private var subject: F
+    private let builder: (FormulaireBuilder<F>) -> C
+
+    public var body: some View {
+        FormulaireHost(subject: $subject, content: builder)
     }
 
     public init(
@@ -99,66 +86,115 @@ public struct FormulaireView<F: Formulaire, C: View>: View {
     }
 }
 
-private extension FormulaireView {
-    private func previousButton(proxy: ScrollViewProxy) -> some View {
-        Button(
-            action: {
-                let fields = renderedFields.value
-                guard let currentIndex = focus.flatMap({ fields.firstIndex(of: $0) })
-                else { return }
+private struct FormulaireHost<F: Formulaire, Content: View>: View {
+    @Binding var subject: F
+    @FocusState private var focus: FormulairePath?
+    @State private var renderedFields: [FormulairePath] = []
+    @State private var focusCandidates: [FormulairePath] = []
 
-                if currentIndex - 1 >= 0 {
-                    let previous = fields[currentIndex - 1]
-                    proxy.scrollTo(previous)
-                    DispatchQueue.main.asyncAfter(deadline: .now()) {
-                        focus = previous
+    @ViewBuilder let content: (FormulaireBuilder<F>) -> Content
+
+    var body: some View {
+        let root = $subject
+        ScrollViewReader { proxy in
+            content(
+                FormulaireBuilder(
+                    formulaire: root,
+                    scrollProxy: proxy,
+                    focus: $focus,
+                    renderedFields: $renderedFields,
+                    focusCandidates: $focusCandidates,
+                    validator: root.wrappedValue.__validator,
+                    path: .root,
+                    validateFunction: { root.wrappedValue.runValidation() }
+                )
+            )
+            .onPreferenceChange(FormulaireFieldOrderPreferenceKey.self) { fields in
+                renderedFields = fields
+                if let candidate = focusCandidates.first, fields.contains(candidate) {
+                    focusCandidates = []
+                    DispatchQueue.main.async {
+                        focus = candidate
                     }
+                    return
                 }
-            },
-            label: {
-                Label(LocalizedStringResource(stringLiteral: "Previous"), systemImage: "chevron.up")
-                    .labelStyle(.iconOnly)
-                    .contentShape(Rectangle())
+                if let focus, !fields.contains(focus) {
+                    self.focus = nil
+                }
             }
-        )
-        .disabled(focus == renderedFields.value.first)
+            .formulaireKeyboardToolbar(
+                focus: $focus,
+                renderedFields: renderedFields,
+                proxy: proxy
+            )
+        }
+    }
+}
+
+enum FormulaireFocusOrder {
+    static func previous(
+        in fields: [FormulairePath],
+        current: FormulairePath?
+    ) -> FormulairePath? {
+        guard let current, let index = fields.firstIndex(of: current), index > fields.startIndex else {
+            return nil
+        }
+        return fields[fields.index(before: index)]
     }
 
-    private func nextButton(proxy: ScrollViewProxy) -> some View {
-        Button(
-            action: {
-                let fields = renderedFields.value
-                guard let currentIndex = focus.flatMap({ fields.firstIndex(of: $0) })
-                else { return }
-
-                if currentIndex + 1 < fields.count {
-                    let next = fields[currentIndex + 1]
-                    proxy.scrollTo(next)
-                    DispatchQueue.main.asyncAfter(deadline: .now()) {
-                        focus = next
-                    }
-                }
-            },
-            label: {
-                Label(LocalizedStringResource(stringLiteral: "Next"), systemImage: "chevron.down")
-                    .labelStyle(.iconOnly)
-                    .contentShape(Rectangle())
-            }
-        )
-        .disabled(focus == renderedFields.value.last)
+    static func next(
+        in fields: [FormulairePath],
+        current: FormulairePath?
+    ) -> FormulairePath? {
+        guard let current, let index = fields.firstIndex(of: current) else {
+            return nil
+        }
+        let next = fields.index(after: index)
+        return next < fields.endIndex ? fields[next] : nil
     }
+}
 
+extension View {
     @ViewBuilder
-    private func doneButton(_ labelStyle: some LabelStyle) -> some View {
-        Button(
-            action: {
-                focus = nil
-            },
-            label: {
-                Label(LocalizedStringResource(stringLiteral: "Done"), systemImage: "checkmark")
-                    .labelStyle(labelStyle)
-                    .contentShape(Rectangle())
+    func formulaireKeyboardToolbar(
+        focus: FocusState<FormulairePath?>.Binding,
+        renderedFields: [FormulairePath],
+        proxy: ScrollViewProxy
+    ) -> some View {
+        #if os(iOS)
+        let info = Bundle.main.infoDictionary
+        if #available(iOS 26, *), (info?["UIDesignRequiresCompatibility"] as? Bool) != true {
+            safeAreaBar(edge: .bottom) {
+                ZStack {
+                    if focus.wrappedValue != nil {
+                        FormulaireKeyboardControls(
+                            focus: focus,
+                            renderedFields: renderedFields,
+                            proxy: proxy,
+                            iconOnlyDoneButton: true
+                        )
+                        .padding()
+                        .glassEffect(.regular, in: .capsule)
+                        .transition(.blurReplace)
+                    }
+                }
+                .padding([.horizontal, .bottom])
+                .animation(.snappy, value: focus.wrappedValue != nil)
             }
-        )
+        } else {
+            toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
+                    FormulaireKeyboardControls(
+                        focus: focus,
+                        renderedFields: renderedFields,
+                        proxy: proxy,
+                        iconOnlyDoneButton: false
+                    )
+                }
+            }
+        }
+        #else
+        self
+        #endif
     }
 }

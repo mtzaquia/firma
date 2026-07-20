@@ -1,5 +1,5 @@
 //
-//  Copyright (c) 2025 @mtzaquia
+//  Copyright (c) 2026 @mtzaquia
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -23,13 +23,14 @@
 import SwiftUI
 
 struct ErrorText: View {
+    @Environment(\.formulaireStyle) private var style
     let error: Error?
 
     var body: some View {
         if let error {
             Text(error.localizedDescription)
                 .font(.caption.weight(.medium))
-                .foregroundStyle(.red)
+                .foregroundStyle(style.errorColor)
         }
     }
 }

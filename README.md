@@ -1,122 +1,117 @@
-# Formulaire
+# 🧾 Formulaire
 
-A lightweight Swift library for building validated, focus-aware forms using Swift macros and SwiftUI. Formulaire provides helpers to render controls, manage focus, and surface validation errors.
+`Formulaire` is a small, type-safe foundation for validated SwiftUI forms.
 
-![gif showcasing a simple invoice formulaire with validation and dynamic lists](https://github.com/user-attachments/assets/8b6b8ec9-d37a-466a-9a96-df7a06ecfe4f)
-![gif showcasing a person formulaire with keyboard navigation](https://github.com/user-attachments/assets/867fcaab-73cd-43d0-a16e-a68bb2e7d6f4)
+Describe editable state with an observable class, write validation beside that state, and render controls through a scoped builder. Formulaire keeps bindings, structured error paths, dynamic focus order, and nested models in sync.
 
-## Instalation
+- Validate root models, nested models, optionals, and identified collections.
+- Build native controls or integrate any custom SwiftUI control.
+- Move keyboard focus in rendered order and reach the first invalid row in lazy, dynamic lists.
+- Query immutable validation results or errors for one field or subtree.
+- Use the built-in `Form` container or bring your own layout and styling.
+- Exercise the runtime API through a deterministic sample app and UI-test suite.
 
-Formulaire is available via Swift Package Manager, and requires `Swift 6.2`.
+```swift
+FormulaireView(editing: $account) { form in
+  form.textField(for: \.email, label: "Email")
+  form.submitButton("Create account") {
+    createAccount()
+  }
+}
+```
+
+## Install
+
+Formulaire supports iOS 17+ and macOS 14+ and uses the Swift 6.2 package format.
 
 ```swift
 dependencies: [
   .package(url: "https://github.com/mtzaquia/formulaire.git", from: "1.3.0"),
-],
+]
 ```
 
-## Usage
+## Five-minute start
 
-### Getting Started
-
-Annotate your form model class with `@Observable` and `@Formulaire`, and provide a `validate()` method. Leave it empty for no validation.
+Annotate an observable class with `@Formulaire`, then add errors from its `validate()` method. Form models should be main-actor isolated when the consuming target does not already use main-actor default isolation.
 
 ```swift
 import Formulaire
+import Observation
 
-@Observable @Formulaire
+enum SignUpError: LocalizedError {
+  case missingName
+  case invalidEmail
+
+  var errorDescription: String? {
+    switch self {
+    case .missingName: "Enter your name"
+    case .invalidEmail: "Enter a valid email address"
+    }
+  }
+}
+
+@MainActor @Observable @Formulaire
 final class SignUpForm {
-  var firstName: String = ""
-  var lastName: String = ""
-  var age: Int = 18
-  var preferences: IdentifiedArrayOf<Preference> = [
-    Preference("News about cats", isEnabled: false),
-    Preference("News about dogs", isEnabled: false)
-  ]
+  var name: String = ""
+  var email: String = ""
+  var receivesUpdates: Bool = false
 
   func validate() {
-    if firstName.isEmpty {
-      addError(MissingRequiredFieldError(), for: \.firstName)
+    if name.isEmpty {
+      addError(SignUpError.missingName, for: \.name)
     }
-
-    if lastName.isEmpty {
-      addError(MissingRequiredFieldError(), for: \.lastName)
+    if !email.contains("@") {
+      addError(SignUpError.invalidEmail, for: \.email)
     }
-    
-    if preferences.count(where: { $0.isEnabled }) == .zero {
-      addError(AtLeastOneError(), for: \.preferences)
-    }
-    
-    // This would validate the `Preference` type using its `validate()` function.
-    // validate(\.preferences)
-  }
-}
-
-@Observable @Formulaire
-final class Preference {
-  var name: String
-  var isEnabled: Bool
-  
-  func validate() {
-    // Compose validation of complex models by breaking them down, like here.
   }
 }
 ```
 
-### Building UI
-
-Formulaire ships with a small set of SwiftUI helpers to wire your form to UI controls while managing focus and errors. You can create your own controls using `form.control(for:focusable:content:)` or display custom content with error-awareness using `form.content(for:content:)`.
-
-Focus and keyboard navigation is managed automatically and supports dynamically-built forms and lists.
+Render it with the convenience container. A submit action runs only after a fresh, successful validation pass; an invalid submit focuses the first rendered field with an error.
 
 ```swift
-import Formulaire
 import SwiftUI
 
 struct SignUpView: View {
-  @State private var form = SignUpForm()
+  @State private var model = SignUpForm()
 
   var body: some View {
-    FormulaireView(editing: $form) { form in
-      form.textField(for: \.firstName, label: "First name")
-      form.textField(for: \.lastName, label: "Last name")
-      form.stepper(for: \.age, label: "Age", step: 1, range: 0...120)
-      
-      form.content(for: \.preferences) { error in 
-        Section {
-          ForEach(invoice.preferences) { preference in
-            let scoped = form.scope(\.preferences, for: preference)
-            scoped.toggle(for: \.isEnabled, label: preference.name)
-          }
-        } footer: {
-          if let error {
-            Text(error.localizedDescription)
-          }
-        }
-      }
-      
-      // Use a default submit button...
-      form.submitButton("Create Account") {
-        // Handle success
-        print("Submitted")
+    FormulaireView(editing: $model) { form in
+      Section("Profile") {
+        form.textField(for: \.name, label: "Name")
+        form.textField(for: \.email, label: "Email")
+        form.toggle(for: \.receivesUpdates, label: "Product updates")
       }
 
-      // ... or handle it with your own logic.
-      Button("Done!") { 
-        let success = form.validate()
-        if success {
-          // handle success
-        }
+      form.submitButton("Create account") {
+        // Persist the already-validated model.
       }
     }
-    .padding()
   }
 }
 ```
 
+Use `FormulaireContent` for a `ScrollView`, grid, or any other app-owned container. Use `control(for:focusable:)` to connect custom controls to the same binding, focus, identity, and error system.
+
+That is the core idea: the model owns validation rules, structured scopes preserve identity, and the view builder keeps runtime behavior consistent across native and custom controls.
+
+## Documentation
+
+- [Getting started](docs/getting-started.md) — model requirements and the first form.
+- [Validation](docs/validation.md) — validation passes, results, errors, and nested rules.
+- [Rendering and focus](docs/rendering.md) — containers, controls, styling, focus, and submission.
+- [Scoping](docs/scoping.md) — nested models, optionals, and identified collections.
+- [Testing](docs/testing.md) — deterministic sample scenarios and UI-test launch arguments.
+
+## Sample app
+
+Open [`Sample/Sample.xcodeproj`](Sample/Sample.xcodeproj) to exercise convenience and custom controls, manual and asynchronous submission, deep and optional scopes, dynamic identified lists, validation summaries, styling, and keyboard navigation.
+
+The `SampleUITests` scheme launches each scenario directly and verifies the same runtime paths. See [Testing](docs/testing.md) for the fixture contract.
+
 ## License
 
-Copyright (c) 2025 @mtzaquia
+Copyright (c) 2026 @mtzaquia
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

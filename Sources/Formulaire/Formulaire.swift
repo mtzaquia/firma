@@ -1,5 +1,5 @@
 //
-//  Copyright (c) 2025 @mtzaquia
+//  Copyright (c) 2026 @mtzaquia
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,7 @@ import SwiftUI
 public macro Formulaire() = #externalMacro(module: "FormulaireMacros", type: "FormulaireMacro")
 
 /// The protocol allowing a class to be used as the subject of a ``FormulaireView``.
-/// - Important: You don't confirm to this protocol directly, instead, use the ``Formulaire()`` macro.
+/// - Important: You don't conform to this protocol directly. Use the ``Formulaire()`` macro instead.
 public protocol Formulaire {
     /// A function implementing validation logic for this subject.
     ///
@@ -56,14 +56,6 @@ public protocol Formulaire {
     /// **[Internal use]** You do not interact with this property directly.
     static var __fields: Fields { get }
 
-    associatedtype Concrete: Formulaire
-
     /// **[Internal use]** You do not interact with this property directly.
-    var __validator: Validator<Concrete> { get }
-}
-
-extension Optional: Formulaire where Wrapped: Formulaire, Wrapped.Concrete == Wrapped {
-    public static var __fields: Wrapped.Fields { Wrapped.__fields }
-    public var __validator: Validator<Wrapped> { self?.__validator ?? Validator<Wrapped>() }
-    public func validate() { self?.validate() }
+    var __validator: Validator { get }
 }

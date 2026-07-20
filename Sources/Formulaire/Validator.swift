@@ -1,5 +1,5 @@
 //
-//  Copyright (c) 2025 @mtzaquia
+//  Copyright (c) 2026 @mtzaquia
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -22,88 +22,146 @@
 
 import Foundation
 
-/// An entity that validates ``Formulaire`` subjects.
+/// Observable validation state owned by a ``Formulaire`` subject.
+///
+/// Validation passes are started by ``Formulaire/runValidation()`` or a
+/// ``FormulaireBuilder``. Calling a model's rule-producing `validate()` method
+/// directly intentionally does not start a new pass.
 @Observable
-public final class Validator<F: Formulaire> {
+public final class Validator {
     @ObservationIgnored
-    var parent: String?
+    private var context: FormulairePath = .root
 
-    public private(set) var errors: [String: Error] = [:]
+    @ObservationIgnored
+    private var errorPaths: [FormulairePath] = []
 
-    /// **[Internal use]** You do not instantiate this type directly.
-    public init() {}
+    public private(set) var errors: [FormulairePath: any Error] = [:]
 
-    func addError(_ error: Error, for key: String) {
-        let key = [parent, key].compactMap(\.self).joined(separator: ".")
-        errors[key] = error
+    /// The current validation snapshot.
+    public var result: ValidationResult {
+        ValidationResult(errors: errors, errorPaths: errorPaths)
     }
 
-    func clearAllErrors(prefix: String? = nil) {
-        if let prefix, !prefix.isEmpty {
-            let keysToRemove = errors.keys.filter { $0.hasPrefix(prefix) }
-            keysToRemove.forEach {
-                errors.removeValue(forKey: $0)
+    /// **[Internal use]** Formulaire models receive an instance from the macro.
+    public init() {}
+
+    func addError(_ error: any Error, for field: String) {
+        let path = context.appending(field: field)
+        if errors[path] == nil {
+            errorPaths.append(path)
+        }
+        errors[path] = error
+    }
+
+    func clearAllErrors(in path: FormulairePath? = nil, includingPath: Bool = true) {
+        guard let path, path != .root else {
+            errors.removeAll()
+            errorPaths.removeAll()
+            return
+        }
+
+        errors = errors.filter { key, _ in
+            if key == path {
+                return !includingPath
             }
+            return !path.contains(key)
+        }
+        errorPaths.removeAll { errors[$0] == nil }
+    }
+
+    func evaluate<F: Formulaire>(_ subject: F, at path: FormulairePath) -> ValidationResult {
+        context = path
+        errors.removeAll()
+        errorPaths.removeAll()
+        subject.validate()
+        return result
+    }
+
+    func replaceValidation<F: Formulaire>(of subject: F, at path: FormulairePath) -> ValidationResult {
+        clearAllErrors(in: path, includingPath: false)
+
+        let childResult: ValidationResult
+        if subject.__validator === self {
+            let preserved = result
+            childResult = evaluate(subject, at: path)
+            errors = preserved.errors
+            errorPaths = preserved.errorPaths
+            merge(childResult)
         } else {
-            errors = [:]
+            childResult = subject.__validator.evaluate(subject, at: path)
+            merge(childResult)
+        }
+
+        let scopedErrors = errors.filter { path.contains($0.key) }
+        return ValidationResult(
+            errors: scopedErrors,
+            errorPaths: errorPaths.filter { scopedErrors[$0] != nil }
+        )
+    }
+
+    func validateNested<F: Formulaire>(_ nested: F, field: String) {
+        let path = context.appending(field: field)
+        clearAllErrors(in: path, includingPath: false)
+        let nestedResult = nested.__validator.evaluate(nested, at: path)
+        merge(nestedResult)
+    }
+
+    func validateNested<F: Formulaire>(_ nested: F?, field: String) {
+        let path = context.appending(field: field)
+        clearAllErrors(in: path, includingPath: false)
+        guard let nested else { return }
+
+        let nestedResult = nested.__validator.evaluate(nested, at: path)
+        merge(nestedResult)
+    }
+
+    func validateNested<F: Formulaire>(_ nested: IdentifiedArrayOf<F>, field: String) {
+        let listPath = context.appending(field: field)
+        clearAllErrors(in: listPath, includingPath: false)
+
+        for value in nested {
+            let elementPath = listPath.appending(elementID: value.id)
+            let nestedResult = value.__validator.evaluate(value, at: elementPath)
+            merge(nestedResult)
         }
     }
 
-    func hasErrors() -> Bool {
-        !errors.values.compactMap(\.self).isEmpty
+    private func merge(_ result: ValidationResult) {
+        for path in result.errorPaths where !errorPaths.contains(path) {
+            errorPaths.append(path)
+        }
+        errors.merge(result.errors, uniquingKeysWith: { _, new in new })
     }
 }
 
 public extension Formulaire {
-    /// Attaches an error to a given field of this subject in this validation pass.
-    ///
-    /// Only one error can be applied to a field. Applying an error to a field that already has errors overrides the previous value.
-    ///
-    /// - Parameters:
-    ///   - error: The error to be added.
-    ///   - field: The field in which the error is attached.
-    func addError<V>(_ error: Error, for field: FieldPath<Self, V>) {
+    /// Runs a complete validation pass, clearing stale errors first.
+    @discardableResult
+    func runValidation() -> ValidationResult {
+        __validator.evaluate(self, at: .root)
+    }
+
+    /// Attaches an error to a field during the current validation pass.
+    func addError<V>(_ error: any Error, for field: FieldPath<Self, V>) {
         let concreteField = Self.__fields[keyPath: field]
-
-        let nested = concreteField.get(self)
-        if let nested = nested as? Optional<Formulaire>, nested == nil {
-            print(
-                "[Formulaire] Validating a nil, nested object does nothing: \\\(type(of: self)).\(concreteField.label)"
-            )
-        }
-
         __validator.addError(error, for: concreteField.label)
     }
 
-    /// Validates a nested ``Formulaire`` type while validating your current subject.
-    ///
-    /// - Note: You can also validate nested subjects using ``addError(_:for:)``, using nested key paths. The benefit of this function is that
-    /// validation logic can be reused across subjects.
-    ///
-    /// - Parameter nested: The field of the nested subject that is to be validated.
+    /// Reuses the validation rules of a nested Formulaire subject.
     func validate<F: Formulaire>(_ nested: FieldPath<Self, F>) {
         let concreteField = Self.__fields[keyPath: nested]
-        let target = concreteField.get(self)
-        __validator._validateNested(target, parent: concreteField.label)
+        __validator.validateNested(concreteField.get(self), field: concreteField.label)
     }
 
+    /// Reuses a nested subject's validation rules when the optional contains a value.
+    func validate<F: Formulaire>(_ nested: FieldPath<Self, F?>) {
+        let concreteField = Self.__fields[keyPath: nested]
+        __validator.validateNested(concreteField.get(self), field: concreteField.label)
+    }
+
+    /// Reuses the validation rules of every subject in an identified list.
     func validate<F: Formulaire>(_ nested: FieldPath<Self, IdentifiedArrayOf<F>>) {
         let concreteField = Self.__fields[keyPath: nested]
-        let target = concreteField.get(self)
-        for value in target {
-            __validator._validateNested(value, parent: concreteField.label + "[\(value.id.hashValue)]")
-        }
-    }
-}
-
-private extension Validator {
-    func _validateNested<N: Formulaire>(_ nested: N, parent: String) {
-        clearAllErrors(prefix: parent)
-        nested.__validator.clearAllErrors()
-
-        nested.__validator.parent = parent
-        nested.validate()
-
-        errors.merge(nested.__validator.errors, uniquingKeysWith: { _, new in new })
+        __validator.validateNested(concreteField.get(self), field: concreteField.label)
     }
 }

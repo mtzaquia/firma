@@ -1,5 +1,5 @@
 //
-//  Copyright (c) 2025 @mtzaquia
+//  Copyright (c) 2026 @mtzaquia
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -23,13 +23,15 @@
 import SwiftUI
 
 public struct ControlBuilder<F: Formulaire, V> {
-    var id: String
+    /// Stable identity for the field. Use it with ``focus`` when building a
+    /// custom focusable control.
+    public var id: FormulairePath
 
     /// A binding to the value for this particular field, which can be used in native components.
     @Binding public var value: V
 
     /// A binding for focus, so fields can hook into the focus system.
-    @FocusState.Binding public var focus: String?
+    @FocusState.Binding public var focus: FormulairePath?
 
     /// A property holding the error for this field, if any exist.
     public var error: Error?

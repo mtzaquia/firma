@@ -1,5 +1,5 @@
 //
-//  Copyright (c) 2025 @mtzaquia
+//  Copyright (c) 2026 @mtzaquia
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -25,7 +25,7 @@ import Foundation
 /// An indirect reference for the key path of a ``Formulaire`` field.
 public typealias FieldPath<F: Formulaire, V> = KeyPath<F.Fields, FormulaireField<F, V>>
 
-/// An abstraction of a formulaire field for a given proeprty of a ``Formulaire`` subject.
+/// An abstraction of a Formulaire field for a given property of a ``Formulaire`` subject.
 public struct FormulaireField<Root, Value>: Hashable {
     let label: String
     let get: (Root) -> Value
@@ -63,4 +63,3 @@ extension Formulaire {
         }
     }
 }
-

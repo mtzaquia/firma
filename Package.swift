@@ -6,7 +6,7 @@ import CompilerPluginSupport
 
 let package = Package(
     name: "Formulaire",
-    platforms: [.iOS(.v17), .macOS(.v15)],
+    platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
         .library(
             name: "Formulaire",
@@ -41,6 +41,24 @@ let package = Package(
                 .enableUpcomingFeature("InferIsolatedConformances"),
             ]
         ),
+        .target(
+            name: "FormulaireClientFixture",
+            dependencies: ["Formulaire"],
+            path: "Tests/FormulaireClientFixture",
+            swiftSettings: [
+                .defaultIsolation(MainActor.self),
+                .enableUpcomingFeature("InferIsolatedConformances"),
+            ]
+        ),
+        .testTarget(
+            name: "FormulaireClientTests",
+            dependencies: ["Formulaire", "FormulaireClientFixture"],
+            path: "Tests/FormulaireClientTests",
+            swiftSettings: [
+                .defaultIsolation(MainActor.self),
+                .enableUpcomingFeature("InferIsolatedConformances"),
+            ]
+        ),
         .macro(
             name: "FormulaireMacros",
             dependencies: [
@@ -48,6 +66,13 @@ let package = Package(
                 .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
             ],
         ),
+        .testTarget(
+            name: "FormulaireMacroTests",
+            dependencies: [
+                "FormulaireMacros",
+                .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+            ],
+            path: "Tests/FormulaireMacroTests"
+        ),
     ]
 )
-

@@ -1,5 +1,5 @@
 //
-//  Copyright (c) 2025 @mtzaquia
+//  Copyright (c) 2026 @mtzaquia
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -22,169 +22,353 @@
 
 import SwiftUI
 
+struct FormulaireFieldOrderPreferenceKey: PreferenceKey {
+    static var defaultValue: [FormulairePath] = []
+
+    static func reduce(value: inout [FormulairePath], nextValue: () -> [FormulairePath]) {
+        for path in nextValue() where !value.contains(path) {
+            value.append(path)
+        }
+    }
+}
+
 public extension FormulaireBuilder {
-    /// Builds a control for editing one of the fields from the subject.
-    ///
-    /// - Parameters:
-    ///   - field: The field path that is to be mutated in the subject.
-    ///   - focusable: A flag indicating whether this control should be part of the focus system.
-    ///   - content: The view for the control, built using a ``ControlBuilder``.
+    /// Builds a custom control for a field.
     func control<V, Content: View>(
         for field: FieldPath<F, V>,
         focusable: Bool,
         @ViewBuilder content: (ControlBuilder<F, V>) -> Content
     ) -> some View {
         let concreteField = F.__fields[keyPath: field]
-
-        let fieldId = [parent, concreteField.label].compactMap(\.self).joined(separator: ".")
-        if focusable {
-            renderedFields.value.append(fieldId)
-        }
+        let fieldPath = path.appending(field: concreteField.label)
 
         return content(
             ControlBuilder(
-                id: fieldId,
-                value: $formulaire[field: concreteField],
+                id: fieldPath,
+                value: binding(for: field),
                 focus: $focus,
-                error: formulaire.__validator.errors[fieldId]
+                error: validator.errors[fieldPath]
             )
         )
-        .id(fieldId)
+        .id(fieldPath)
+        .preference(
+            key: FormulaireFieldOrderPreferenceKey.self,
+            value: focusable ? [fieldPath] : []
+        )
     }
 
-    /// Builds a submit button for the form.
-    ///
-    /// When using the submit button, the form is validated automatically. If there are any errors, the first focusable field with an error becomes focused
-    /// automatically.
-    ///
-    /// - SeeAlso: ``FormulaireBuilder/validate()``, for validating forms and applying your own custom logic.
-    ///
-    /// - Parameters:
-    ///   - label: The button label.
-    ///   - onSubmit: The action to be taken if the form is successfuly validated.
+    /// Builds a submit button that validates before running a synchronous action.
     func submitButton(_ label: String, onSubmit: @escaping () -> Void) -> some View {
-        Button(label) {
-            if validate() {
-                onSubmit()
-            } else {
-                if let firstError = renderedFields.value.first(where: { formulaire.__validator.errors[$0] != nil }) {
-                    scrollProxy.scrollTo(firstError)
-                    DispatchQueue.main.asyncAfter(deadline: .now()) {
-                        focus = firstError
-                    }
-                }
+        submitButton(onSubmit: onSubmit) {
+            Text(label)
+        }
+    }
+
+    /// Builds a submit button with a custom label.
+    func submitButton<Label: View>(
+        onSubmit: @escaping () -> Void,
+        @ViewBuilder label: () -> Label
+    ) -> some View {
+        Button {
+            let result = validation()
+            guard result.isValid else {
+                focusFirstError(in: result)
+                return
             }
+            onSubmit()
+        } label: {
+            label()
         }
         .bold()
     }
 
-    /// Builds a text field for editing textual fields.
-    ///
-    /// - Parameters:
-    ///   - field: The field path that is to be mutated in the subject.
-    ///   - label: The user-facing label for the field.
-    func textField(for field: FieldPath<F, String>, label: String, placeholder: String? = nil) -> some View {
+    /// Builds a submit button that supports asynchronous successful submission.
+    func asyncSubmitButton(
+        _ label: String,
+        action: @escaping @MainActor () async -> Void
+    ) -> some View {
+        asyncSubmitButton(action: action) {
+            Text(verbatim: label)
+        }
+    }
+
+    /// Builds a submit button that supports asynchronous successful submission.
+    func asyncSubmitButton<Label: View>(
+        action: @escaping @MainActor () async -> Void,
+        @ViewBuilder label: () -> Label
+    ) -> some View {
+        Button {
+            let result = validation()
+            guard result.isValid else {
+                focusFirstError(in: result)
+                return
+            }
+            Task { await action() }
+        } label: {
+            label()
+        }
+        .bold()
+    }
+
+    /// Builds a text field for a textual field.
+    func textField(
+        for field: FieldPath<F, String>,
+        label: String,
+        placeholder: String? = nil,
+        accessibilityIdentifier: String? = nil
+    ) -> some View {
         control(for: field, focusable: true) { builder in
-            VStack(alignment: .leading) {
-                Text(label)
-                    .foregroundStyle(
-                        builder.error != nil ? AnyShapeStyle(.red) : (
-                            builder.isFocused ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary)
-                        )
-                    )
-                    .font(.caption.bold())
-                    .textCase(.uppercase)
-                
-                TextField(
-                    label,
-                    text: builder.$value,
-                    prompt: Text(placeholder ?? "Enter \(label.localizedCapitalized)")
-                )
-                .focused(builder.$focus, equals: builder.id)
-
-                ErrorText(error: builder.error)
-            }
+            FormulaireTextField(
+                label: Text(verbatim: label),
+                prompt: Text(verbatim: placeholder ?? "Enter \(label)"),
+                accessibilityIdentifier: accessibilityIdentifier,
+                builder: builder
+            )
         }
     }
 
-    /// Builds a toggle for editing boolean fields.
-    ///
-    /// - Parameters:
-    ///   - field: The field path that is to be mutated in the subject.
-    ///   - label: The user-facing label for the field.
-    func toggle(for field: FieldPath<F, Bool>, label: String) -> some View {
+    /// Builds a text field with a custom, localizable label and prompt.
+    func textField<Label: View>(
+        for field: FieldPath<F, String>,
+        prompt: Text? = nil,
+        accessibilityIdentifier: String? = nil,
+        @ViewBuilder label: () -> Label
+    ) -> some View {
+        control(for: field, focusable: true) { builder in
+            FormulaireTextField(
+                label: label(),
+                prompt: prompt,
+                accessibilityIdentifier: accessibilityIdentifier,
+                builder: builder
+            )
+        }
+    }
+
+    /// Builds a toggle for a Boolean field.
+    func toggle(
+        for field: FieldPath<F, Bool>,
+        label: String,
+        accessibilityIdentifier: String? = nil
+    ) -> some View {
         control(for: field, focusable: false) { builder in
-            VStack(alignment: .leading) {
-                Toggle(isOn: builder.$value) {
-                    Text(label)
-                        .foregroundStyle(builder.error != nil ? AnyShapeStyle(.red) : AnyShapeStyle(.primary))
-                }
-
-                ErrorText(error: builder.error)
-            }
+            FormulaireToggle(
+                label: Text(verbatim: label),
+                accessibilityLabel: Text(verbatim: label),
+                accessibilityIdentifier: accessibilityIdentifier,
+                builder: builder
+            )
         }
     }
 
-    /// Builds a stepper for editing numberic fields without decimals.
-    ///
-    /// - Parameters:
-    ///   - field: The field path that is to be mutated in the subject.
-    ///   - label: The user-facing label for the field.
-    ///   - step: The amount by the which the value changes when up or down are pressed. Defaults to 1.
-    ///   - range: The allowed range for the number. Optional.
+    /// Builds a toggle with a custom, localizable label.
+    func toggle<Label: View>(
+        for field: FieldPath<F, Bool>,
+        accessibilityLabel: Text? = nil,
+        accessibilityIdentifier: String? = nil,
+        @ViewBuilder label: () -> Label
+    ) -> some View {
+        control(for: field, focusable: false) { builder in
+            FormulaireToggle(
+                label: label(),
+                accessibilityLabel: accessibilityLabel,
+                accessibilityIdentifier: accessibilityIdentifier,
+                builder: builder
+            )
+        }
+    }
+
+    /// Builds an integer stepper, using SwiftUI's native range-aware behavior.
     func stepper(
         for field: FieldPath<F, Int>,
         label: String,
         step: Int = 1,
-        range: ClosedRange<Int>? = nil
+        range: ClosedRange<Int>? = nil,
+        accessibilityIdentifier: String? = nil
     ) -> some View {
         control(for: field, focusable: false) { builder in
-            VStack(alignment: .leading) {
-                Stepper(
-                    value: builder.$value,
-                    step: step
-                ) {
-                    Text(label)
-                    Text(builder.value.formatted())
-                        .monospaced()
-                }
-
-                ErrorText(error: builder.error)
-            }
-            .onChange(of: builder.value) { _, new in
-                guard let range else { return }
-                builder.value = min(max(new, range.lowerBound), range.upperBound)
-            }
+            FormulaireStepper(
+                label: Text(verbatim: label),
+                step: step,
+                range: range,
+                accessibilityIdentifier: accessibilityIdentifier,
+                builder: builder
+            )
         }
     }
 
-    /// Allows the user to build some visual content on the form for nested formulaire subjects, while conveniently providing
-    /// collected errors for that particular subject.
-    ///
-    /// - Parameters:
-    ///   - field: The field path of the relevant value.
-    ///   - content: The view to be displayed, provided with a list of errors matching the field.
-    func content<N: Formulaire, Content: View>(
-        for field: FieldPath<F, N>,
-        @ViewBuilder content: (_ errors: [String: Error]) -> Content
+    /// Builds an integer stepper with a custom, localizable label.
+    func stepper<Label: View>(
+        for field: FieldPath<F, Int>,
+        step: Int = 1,
+        range: ClosedRange<Int>? = nil,
+        accessibilityIdentifier: String? = nil,
+        @ViewBuilder label: () -> Label
     ) -> some View {
-        let concreteField = F.__fields[keyPath: field]
-
-        return content(formulaire.__validator.errors.filter { key, _ in key.contains("\(concreteField.label).") })
+        control(for: field, focusable: false) { builder in
+            FormulaireStepper(
+                label: label(),
+                step: step,
+                range: range,
+                accessibilityIdentifier: accessibilityIdentifier,
+                builder: builder
+            )
+        }
     }
 
-    /// Allows the user to build some visual content on the form for nested lists of formulaire subjects, while conveniently providing the top-level error
-    /// collected for that particular list.
-    ///
-    /// - Parameters:
-    ///   - field: The field path of the relevant list.
-    ///   - content: The view to be displayed, provided with the top-level error matching the list.
-    func content<N: Formulaire & Identifiable, Content: View>(
-        for field: FieldPath<F, IdentifiedArrayOf<N>>,
-        @ViewBuilder content: (_ error: Error?) -> Content
+    /// Displays custom content with all errors belonging to a nested subject.
+    func content<N: Formulaire, Content: View>(
+        for field: FieldPath<F, N>,
+        @ViewBuilder content: (_ errors: [FormulairePath: any Error]) -> Content
     ) -> some View {
         let concreteField = F.__fields[keyPath: field]
-        return content(formulaire.__validator.errors[concreteField.label])
+        let fieldPath = path.appending(field: concreteField.label)
+        return content(validator.result.errors(in: fieldPath))
+    }
+
+    /// Displays custom content with the top-level error for an identified list.
+    func content<N: Formulaire & Identifiable, Content: View>(
+        for field: FieldPath<F, IdentifiedArrayOf<N>>,
+        @ViewBuilder content: (_ error: (any Error)?) -> Content
+    ) -> some View {
+        let concreteField = F.__fields[keyPath: field]
+        let fieldPath = path.appending(field: concreteField.label)
+        return content(validator.errors[fieldPath])
     }
 }
 
+private extension FormulaireBuilder {
+    func focusFirstError(in result: ValidationResult) {
+        attemptFocus(on: result.errorPaths)
+    }
+
+    func attemptFocus(on candidates: [FormulairePath]) {
+        guard let candidate = candidates.first else {
+            focusCandidates.wrappedValue = []
+            return
+        }
+
+        focus = nil
+        focusCandidates.wrappedValue = candidates
+        scrollProxy.scrollTo(candidate, anchor: .center)
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+            guard focusCandidates.wrappedValue.first == candidate else { return }
+
+            if renderedFields.wrappedValue.contains(candidate) {
+                focusCandidates.wrappedValue = []
+                focus = candidate
+            } else {
+                attemptFocus(on: Array(candidates.dropFirst()))
+            }
+        }
+    }
+}
+
+private struct FormulaireTextField<F: Formulaire, Label: View>: View {
+    @Environment(\.formulaireStyle) private var style
+    let label: Label
+    let prompt: Text?
+    let accessibilityIdentifier: String?
+    let builder: ControlBuilder<F, String>
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            label
+                .foregroundStyle(
+                    builder.error != nil
+                        ? style.errorColor
+                        : (builder.isFocused ? style.focusedLabelColor : style.labelColor)
+                )
+                .font(.caption.bold())
+                .textCase(style.uppercasesTextFieldLabels ? .uppercase : nil)
+
+            textField
+
+            ErrorText(error: builder.error)
+        }
+    }
+
+    @ViewBuilder
+    private var textField: some View {
+        if let accessibilityIdentifier {
+            TextField(text: builder.$value, prompt: prompt) { label }
+                .focused(builder.$focus, equals: builder.id)
+                .accessibilityIdentifier(accessibilityIdentifier)
+        } else {
+            TextField(text: builder.$value, prompt: prompt) { label }
+                .focused(builder.$focus, equals: builder.id)
+        }
+    }
+}
+
+private struct FormulaireToggle<F: Formulaire, Label: View>: View {
+    @Environment(\.formulaireStyle) private var style
+    let label: Label
+    let accessibilityLabel: Text?
+    let accessibilityIdentifier: String?
+    let builder: ControlBuilder<F, Bool>
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            toggle
+            ErrorText(error: builder.error)
+        }
+    }
+
+    @ViewBuilder
+    private var toggle: some View {
+        let toggle = Toggle(isOn: builder.$value) {
+            label.foregroundStyle(builder.error == nil ? Color.primary : style.errorColor)
+        }
+        if let accessibilityLabel, let accessibilityIdentifier {
+            toggle
+                .accessibilityLabel(accessibilityLabel)
+                .accessibilityIdentifier(accessibilityIdentifier)
+        } else if let accessibilityLabel {
+            toggle.accessibilityLabel(accessibilityLabel)
+        } else if let accessibilityIdentifier {
+            toggle.accessibilityIdentifier(accessibilityIdentifier)
+        } else {
+            toggle
+        }
+    }
+}
+
+private struct FormulaireStepper<F: Formulaire, Label: View>: View {
+    let label: Label
+    let step: Int
+    let range: ClosedRange<Int>?
+    let accessibilityIdentifier: String?
+    let builder: ControlBuilder<F, Int>
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            stepper
+            ErrorText(error: builder.error)
+        }
+    }
+
+    @ViewBuilder
+    private var stepper: some View {
+        let stepper = Group {
+            if let range {
+                Stepper(value: builder.$value, in: range, step: step, label: stepperLabel)
+            } else {
+                Stepper(value: builder.$value, step: step, label: stepperLabel)
+            }
+        }
+        if let accessibilityIdentifier {
+            stepper.accessibilityIdentifier(accessibilityIdentifier)
+        } else {
+            stepper
+        }
+    }
+
+    private func stepperLabel() -> some View {
+        LabeledContent {
+            Text(builder.value.formatted())
+        } label: {
+            label
+        }
+    }
+}

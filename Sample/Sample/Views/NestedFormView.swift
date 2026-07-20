@@ -1,0 +1,67 @@
+import Formulaire
+import SwiftUI
+
+struct NestedFormView: View {
+    @State private var model = AccountFormModel()
+    @State private var status = "Not validated"
+
+    var body: some View {
+        FormulaireView(editing: $model) { form in
+            Section("Account") {
+                form.textField(for: \.username, label: "Username")
+            }
+
+            form.content(for: \.primaryAddress) { errors in
+                Section {
+                    let address = form.scope(\.primaryAddress)
+                    address.textField(for: \.street, label: "Primary street")
+                    address.textField(for: \.city, label: "Primary city")
+                    let country = address.scope(\.country)
+                    country.textField(for: \.code, label: "Primary country code")
+                } header: {
+                    Text("Primary address")
+                } footer: {
+                    Text("\(errors.count) nested errors")
+                        .accessibilityIdentifier(SampleAppAccessibility.nestingErrorCount)
+                }
+            }
+
+            Section("Alternate address") {
+                if let alternate = form.scope(\.alternateAddress) {
+                    alternate.textField(for: \.street, label: "Alternate street")
+                    alternate.textField(for: \.city, label: "Alternate city")
+                    let country = alternate.scope(\.country)
+                    country.textField(
+                        for: \.code,
+                        label: "Alternate country code",
+                        accessibilityIdentifier: SampleAppAccessibility.nestingAlternateCountry
+                    )
+
+                    Button("Remove alternate address", role: .destructive) {
+                        model.alternateAddress = nil
+                    }
+                    .accessibilityIdentifier(SampleAppAccessibility.nestingRemoveAlternate)
+                } else {
+                    Button("Add alternate address") {
+                        model.alternateAddress = AddressFormModel()
+                    }
+                    .accessibilityIdentifier(SampleAppAccessibility.nestingAddAlternate)
+                }
+
+                if let error = form.error(for: \.alternateAddress) {
+                    Text(error.localizedDescription).font(.caption).foregroundStyle(.red)
+                }
+            }
+
+            Section {
+                form.submitButton("Create account") { status = "Submitted" }
+                    .accessibilityIdentifier(SampleAppAccessibility.nestingSubmit)
+                Text(status)
+                    .accessibilityIdentifier(SampleAppAccessibility.nestingStatus)
+            }
+        }
+        .navigationTitle("Nesting")
+        .navigationBarTitleDisplayMode(.inline)
+        .accessibilityIdentifier(SampleAppAccessibility.nestingScreen)
+    }
+}

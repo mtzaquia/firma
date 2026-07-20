@@ -1,358 +1,253 @@
-//
-//  Copyright (c) 2025 @mtzaquia
-//
-//  Permission is hereby granted, free of charge, to any person obtaining a copy
-//  of this software and associated documentation files (the "Software"), to deal
-//  in the Software without restriction, including without limitation the rights
-//  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-//  copies of the Software, and to permit persons to whom the Software is
-//  furnished to do so, subject to the following conditions:
-//
-//  The above copyright notice and this permission notice shall be included in all
-//  copies or substantial portions of the Software.
-//
-//  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-//  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-//  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-//  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-//  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-//  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-//  SOFTWARE.
-//
-
 import Foundation
-import SwiftUI
 import IdentifiedCollections
+import SwiftUI
 import Testing
 @testable import Formulaire
 
 extension String: @retroactive LocalizedError {
-    var localizedDescription: Self { self }
+    nonisolated public var errorDescription: String? { self }
 }
 
-// MARK: - Test Models
+@Observable @Formulaire
+final class TestCountry {
+    var code: String = ""
+
+    func validate() {
+        if code.isEmpty { addError("Country code is required", for: \.code) }
+    }
+}
 
 @Observable @Formulaire
-final class Address {
+final class TestAddress {
     var street: String = ""
     var city: String = ""
+    var country: TestCountry = TestCountry()
 
     func validate() {
-        if street.isEmpty {
-            addError("Street is required.", for: \.street)
-        }
+        if street.isEmpty { addError("Street is required", for: \.street) }
+        validate(\.country)
     }
 }
 
 @Observable @Formulaire
-final class Phone: Identifiable {
-    var id: String = UUID().uuidString
+final class TestPhone: Identifiable {
+    var id: String
     var label: String = ""
 
+    init(id: String) { self.id = id }
+
     func validate() {
-        if label.isEmpty {
-            addError("Label is required.", for: \.label)
-        }
+        if label.isEmpty { addError("Label is required", for: \.label) }
     }
 }
 
 @Observable @Formulaire
-final class Person {
+final class TestPerson {
     var name: String = ""
-    var address: Address = Address()
-    var phones: IdentifiedArrayOf<Phone> = []
-    var optionalAddress: Address? = nil
+    var address: TestAddress = TestAddress()
+    var address2: TestAddress = TestAddress()
+    var phones: IdentifiedArrayOf<TestPhone> = []
+    var optionalAddress: TestAddress?
 
     func validate() {
-        if name.isEmpty {
-            addError("Name is required.", for: \.name)
-        }
-
-        // Top-level error for empty list
-        if phones.isEmpty {
-            addError("At least one phone is required.", for: \.phones)
-        }
-
-        // Top-level error when optional is nil (to mirror recommended usage)
-        if optionalAddress == nil {
-            addError("An address is required.", for: \.optionalAddress)
-        }
-
-        // Reuse nested validation logic
+        if name.isEmpty { addError("Name is required", for: \.name) }
+        if phones.isEmpty { addError("At least one phone is required", for: \.phones) }
+        if optionalAddress == nil { addError("An address is required", for: \.optionalAddress) }
         validate(\.address)
+        validate(\.address2)
         validate(\.phones)
         validate(\.optionalAddress)
     }
 }
 
-@Suite("Formulaire Validation and Focus Path Tests")
-struct FormulaireValidationAndFocusTests {
-    // MARK: Basic validator behavior
-    @Test("addError attaches using field label and clearAllErrors/hasErrors work")
-    func testValidatorBasics() async throws {
-        let addr = Address()
-        #expect(addr.__validator.errors.isEmpty)
-        addr.addError("X", for: \.city)
-        #expect(addr.__validator.hasErrors())
-        #expect(addr.__validator.errors.keys.contains("city"))
+private struct CollidingID: Hashable {
+    let rawValue: Int
+    func hash(into hasher: inout Hasher) { hasher.combine(0) }
+}
 
-        addr.__validator.clearAllErrors()
-        #expect(!addr.__validator.hasErrors())
-        #expect(addr.__validator.errors.isEmpty)
+@Observable @Formulaire
+private final class CollidingItem: Identifiable {
+    var id: CollidingID
+    var value: String = ""
+
+    init(id: CollidingID) { self.id = id }
+    func validate() {
+        if value.isEmpty { addError("Value is required", for: \.value) }
+    }
+}
+
+@Observable @Formulaire
+private final class CollidingList {
+    var items: IdentifiedArrayOf<CollidingItem> = []
+    func validate() { validate(\.items) }
+}
+
+@Suite("Validation")
+struct FormulaireValidationTests {
+    @Test("runValidation owns clearing and returns a snapshot")
+    func validationLifecycle() {
+        let person = validPerson()
+        person.name = ""
+
+        let invalid = person.runValidation()
+        #expect(!invalid.isValid)
+        #expect(invalid.errors[field("name")] != nil)
+
+        person.name = "Taylor"
+        let valid = person.runValidation()
+        #expect(valid.isValid)
+        #expect(person.__validator.errors.isEmpty)
     }
 
-    // MARK: Field subscript get/set
-    @Test("subscript(field:) correctly gets and sets values")
-    func testFieldSubscriptGetSet() async throws {
-        var p = Person()
-        // Get field metadata from generated __fields
-        let numberField = Person.__fields.name
-        // Get
-        #expect(p[field: numberField] == "")
-        // Set
-        p[field: numberField] = "Alice"
-        #expect(p.name == "Alice")
+    @Test("deep paths retain every ancestor")
+    func deepPaths() {
+        let person = validPerson()
+        person.address.country.code = ""
+        person.address2.country.code = ""
 
-        // Nested object field access
-        let streetField = Person.__fields.address
-        let nested = p[field: streetField]
-        nested.street = "Main"
-        // Assign back via set to ensure setter path works on Root
-        p[field: streetField] = nested
-        #expect(p.address.street == "Main")
+        let result = person.runValidation()
+        #expect(result.errors[field("address", "country", "code")] != nil)
+        #expect(result.errors[field("address2", "country", "code")] != nil)
+        #expect(result.errors.count == 2)
     }
 
-    // MARK: Nested subject validation
-    @Test("nested subject validation prefixes keys with parent path")
-    func testNestedSubjectValidation() async throws {
-        let p = Person()
-        p.name = "Alice" // avoid top-level name error
-        p.address.street = "" // force nested error
-        p.phones = [] // force top-level list error
-        p.validate()
-        let keys = Set(p.__validator.errors.keys)
+    @Test("identified list paths retain actual IDs, even when hashes collide")
+    func collidingListIDs() {
+        let first = CollidingItem(id: CollidingID(rawValue: 1))
+        let second = CollidingItem(id: CollidingID(rawValue: 2))
+        let model = CollidingList()
+        model.items = [first, second]
 
-        // Expect nested error for address.street
-        #expect(keys.contains("address.street"))
-        // Expect top-level error for empty list
-        #expect(keys.contains("phones"))
-        // No phone item errors because list is empty
-        #expect(!keys.contains(where: { $0.hasPrefix("phones[") }))
+        let result = model.runValidation()
+        let listPath = field("items")
+        let firstPath = listPath.appending(elementID: first.id).appending(field: "value")
+        let secondPath = listPath.appending(elementID: second.id).appending(field: "value")
+
+        #expect(first.id.hashValue == second.id.hashValue)
+        #expect(firstPath != secondPath)
+        #expect(result.errors[firstPath] != nil)
+        #expect(result.errors[secondPath] != nil)
     }
 
-    // MARK: Nested list validation
-    @Test("nested list validation composes keys with indexed parent prefix")
-    func testNestedListValidation() async throws {
-        let p = Person()
-        p.name = "Alice"
-        p.address.street = "Elm"
+    @Test("identified list errors retain model order")
+    func identifiedListErrorOrder() {
+        let person = validPerson()
+        person.phones = IdentifiedArray(uniqueElements: (1...5).map { index in
+            let phone = TestPhone(id: "phone-\(index)")
+            if index == 1 { phone.label = "Primary" }
+            return phone
+        })
 
-        // Populate two phones with empty labels to trigger nested errors
-        let ph1 = Phone(); ph1.label = ""
-        let ph2 = Phone(); ph2.label = ""
-        p.phones = [ph1, ph2]
-        p.validate()
-        let keys = Set(p.__validator.errors.keys)
-
-        // There should be no top-level phones error (list is not empty)
-        #expect(!keys.contains("phones"))
-
-        // Expect nested errors for each phone with index-like suffix [hash].label
-        let k1 = "phones[\(ph1.id.hashValue)].label"
-        let k2 = "phones[\(ph2.id.hashValue)].label"
-        #expect(keys.contains(k1))
-        #expect(keys.contains(k2))
-    }
-
-    // MARK: Optional nested subject behavior
-    @Test("optional nested subject: nil -> top-level error only; present -> nested errors")
-    func testOptionalNestedBehavior() async throws {
-        // Case 1: nil optionalAddress
-        do {
-            let p = Person()
-            p.name = "Bob"
-            p.address.street = "Oak"
-            p.optionalAddress = nil
-            p.validate()
-            let keys = Set(p.__validator.errors.keys)
-            #expect(keys.contains("optionalAddress"))
-            #expect(!keys.contains("optionalAddress.street"))
+        let result = person.runValidation()
+        let phones = field("phones")
+        let expected = (2...5).map {
+            phones.appending(elementID: "phone-\($0)").appending(field: "label")
         }
 
-        // Case 2: present optionalAddress with invalid nested field
-        do {
-            let p = Person()
-            p.name = "Bob"
-            p.address.street = "Oak"
-            let opt = Address(); opt.street = "" // invalid
-            p.optionalAddress = opt
-            p.validate()
-            let keys = Set(p.__validator.errors.keys)
-            #expect(!keys.contains("optionalAddress"))
-            #expect(keys.contains("optionalAddress.street"))
-        }
+        #expect(result.errorPaths == expected)
     }
 
-    // MARK: Idempotency of validation
-    @Test("running validate() twice produces the same set of keys (no duplication)")
-    func testIdempotentValidationProducesSameKeys() async throws {
-        let p = Person()
-        // Intentionally leave invalid to accumulate all top-level + nested address error
-        p.name = ""                    // triggers name error
-        p.address.street = ""          // triggers nested address.street error
-        p.phones = []                   // triggers top-level phones error
-        p.optionalAddress = nil         // triggers top-level optionalAddress error
+    @Test("validating one prefix preserves a similarly named sibling")
+    func prefixBoundaries() {
+        let person = validPerson()
+        person.address.street = ""
+        person.address2.street = ""
+        _ = person.runValidation()
 
-        p.validate()
-        let keys1 = Set(p.__validator.errors.keys)
+        person.address.street = "Main"
+        _ = person.__validator.replaceValidation(of: person.address, at: field("address"))
 
-        // Run validate again without clearing
-        p.validate()
-        let keys2 = Set(p.__validator.errors.keys)
-
-        let expected: Set<String> = [
-            "name",
-            "phones",
-            "optionalAddress",
-            "address.street"
-        ]
-        #expect(keys1 == expected)
-        #expect(keys2 == expected)
+        #expect(person.__validator.errors[field("address", "street")] == nil)
+        #expect(person.__validator.errors[field("address2", "street")] != nil)
     }
 
-    // MARK: Fixing all fields and re-validating leaves no errors
-    @Test("fixing invalid fields then clearing and revalidating removes all errors")
-    func testFixingAllErrorsResultsInNoErrorsAfterClearAndRevalidate() async throws {
-        let p = Person()
-        // Start invalid
-        p.name = ""
-        p.address.street = ""
-        p.phones = []
-        p.optionalAddress = nil
-        p.validate()
-        #expect(!p.__validator.errors.isEmpty)
+    @Test("the same nested object can be validated at two paths")
+    func reusedNestedObject() {
+        let shared = TestAddress()
+        shared.street = ""
+        shared.country.code = "NL"
 
-        // Fix everything
-        p.name = "Zoe"
-        p.address.street = "Pine"
-        let addr = Address(); addr.street = "Birch"; addr.city = "Springfield"
-        p.optionalAddress = addr
-        let ph = Phone(); ph.label = "Home"
-        p.phones = [ph]
+        let person = validPerson()
+        person.address = shared
+        person.address2 = shared
 
-        // Clear and re-validate to recompute errors
-        p.__validator.clearAllErrors()
-        p.validate()
-        #expect(p.__validator.errors.isEmpty)
+        let result = person.runValidation()
+        #expect(result.errors[field("address", "street")] != nil)
+        #expect(result.errors[field("address2", "street")] != nil)
     }
 
-    // MARK: Reordering list items should not change error keys (id-based prefix)
-    @Test("reordering phones keeps nested error keys stable (id-based)")
-    func testPhoneReorderingDoesNotChangeErrorKeys() async throws {
-        let p = Person()
-        p.name = "Alice"
-        p.address.street = "Elm"
+    @Test("optional validation replaces top-level errors with nested errors")
+    func optionalValidation() {
+        let person = validPerson()
+        person.optionalAddress = nil
+        var result = person.runValidation()
+        #expect(result.errors[field("optionalAddress")] != nil)
 
-        let ph1 = Phone(); ph1.label = ""  // invalid
-        let ph2 = Phone(); ph2.label = ""  // invalid
-        p.phones = [ph1, ph2]
-
-        p.validate()
-        let keyA1 = "phones[\(ph1.id.hashValue)].label"
-        let keyA2 = "phones[\(ph2.id.hashValue)].label"
-        let keysA = Set(p.__validator.errors.keys)
-        #expect(keysA.contains(keyA1))
-        #expect(keysA.contains(keyA2))
-
-        // Reorder the phones
-        p.phones = [ph2, ph1]
-        p.__validator.clearAllErrors()
-        p.validate()
-        let keysB = Set(p.__validator.errors.keys)
-        #expect(keysB.contains(keyA1))
-        #expect(keysB.contains(keyA2))
-        #expect(keysA == keysB)
+        let address = TestAddress()
+        address.country.code = "NL"
+        person.optionalAddress = address
+        result = person.runValidation()
+        #expect(result.errors[field("optionalAddress")] == nil)
+        #expect(result.errors[field("optionalAddress", "street")] != nil)
     }
 
-    // MARK: Mixed valid and invalid items in list
-    @Test("only invalid phone entries produce nested errors")
-    func testMixedValidInvalidPhonesOnlyInvalidHaveErrors() async throws {
-        let p = Person()
-        p.name = "Alice"
-        p.address.street = "Elm"
+    @Test("field metadata reads and writes")
+    func fieldMetadata() {
+        var person = TestPerson()
+        let metadata = TestPerson.__fields.name
+        #expect(person[field: metadata] == "")
+        person[field: metadata] = "Morgan"
+        #expect(person.name == "Morgan")
+    }
+}
 
-        let invalid = Phone(); invalid.label = ""
-        let valid = Phone(); valid.label = "Work"
-        p.phones = [invalid, valid]
+@Suite("Focus order")
+struct FormulaireFocusOrderTests {
+    @Test("next and previous follow rendered order")
+    func focusOrder() {
+        let fields = [field("name"), field("email"), field("address", "street")]
+        typealias ViewType = FormulaireView<TestPerson, EmptyView>
 
-        p.validate()
-        let keys = Set(p.__validator.errors.keys)
-        #expect(!keys.contains("phones"))
-        #expect(keys.contains("phones[\(invalid.id.hashValue)].label"))
-        #expect(!keys.contains("phones[\(valid.id.hashValue)].label"))
+        #expect(ViewType.nextFocusId(in: fields, current: fields[0]) == fields[1])
+        #expect(ViewType.nextFocusId(in: fields, current: fields[2]) == nil)
+        #expect(ViewType.previousFocusId(in: fields, current: fields[2]) == fields[1])
+        #expect(ViewType.previousFocusId(in: fields, current: fields[0]) == nil)
+        #expect(ViewType.nextFocusId(in: fields, current: field("missing")) == nil)
     }
 
-    // MARK: Optional becomes valid after being nil
-    @Test("optionalAddress: nil first (top-level error), then valid removes errors")
-    func testOptionalAddressBecomesValidRemovesTopLevelError() async throws {
-        let p = Person()
-        p.name = "Bob"
-        p.address.street = "Oak"
-        p.optionalAddress = nil
-        p.validate()
-        #expect(Set(p.__validator.errors.keys).contains("optionalAddress"))
+    @Test("actual list identity survives reordering")
+    func listReordering() {
+        let first = TestPhone(id: "first")
+        let second = TestPhone(id: "second")
+        let root = field("phones")
+        let firstPath = root.appending(elementID: first.id).appending(field: "label")
+        let secondPath = root.appending(elementID: second.id).appending(field: "label")
+        let before = [field("name"), firstPath, secondPath]
+        let after = [field("name"), secondPath, firstPath]
+        typealias ViewType = FormulaireView<TestPerson, EmptyView>
 
-        // Make it valid
-        let a = Address(); a.street = "Main"; a.city = "Town"
-        p.optionalAddress = a
-        p.__validator.clearAllErrors()
-        p.validate()
-        let keys = Set(p.__validator.errors.keys)
-        #expect(!keys.contains("optionalAddress"))
-        #expect(!keys.contains("optionalAddress.street"))
+        #expect(ViewType.nextFocusId(in: before, current: before[0]) == firstPath)
+        #expect(ViewType.nextFocusId(in: after, current: after[0]) == secondPath)
     }
+}
 
-    // MARK: Focus order with dynamic IdentifiedArray ids
-    @Test("focus order follows IdentifiedArray ids in the provided field list")
-    func testFocusOrderWithIdentifiedArrayIds() async throws {
-        let ph1 = Phone()
-        let ph2 = Phone()
+private func field(_ components: String...) -> FormulairePath {
+    components.reduce(.root) { $0.appending(field: $1) }
+}
 
-        let fields = [
-            "name",
-            "phones[\(ph1.id.hashValue)].label",
-            "phones[\(ph2.id.hashValue)].label",
-            "address.street"
-        ]
-
-        #expect(FormulaireView<Person, EmptyView>.nextFocusId(in: fields, current: "name") == fields[1])
-        #expect(FormulaireView<Person, EmptyView>.nextFocusId(in: fields, current: fields[1]) == fields[2])
-        #expect(FormulaireView<Person, EmptyView>.previousFocusId(in: fields, current: fields[2]) == fields[1])
-        #expect(FormulaireView<Person, EmptyView>.previousFocusId(in: fields, current: "name") == nil)
-        #expect(FormulaireView<Person, EmptyView>.nextFocusId(in: fields, current: "address.street") == nil)
-    }
-
-    @Test("focus order respects list reordering with new dynamic ids")
-    func testFocusOrderWithReorderedIdentifiedArrayIds() async throws {
-        let ph1 = Phone()
-        let ph2 = Phone()
-
-        let initial = [
-            "name",
-            "phones[\(ph1.id.hashValue)].label",
-            "phones[\(ph2.id.hashValue)].label",
-            "address.street"
-        ]
-
-        let reordered = [
-            "name",
-            "phones[\(ph2.id.hashValue)].label",
-            "phones[\(ph1.id.hashValue)].label",
-            "address.street"
-        ]
-
-        #expect(FormulaireView<Person, EmptyView>.nextFocusId(in: initial, current: "name") == initial[1])
-        #expect(FormulaireView<Person, EmptyView>.nextFocusId(in: reordered, current: "name") == reordered[1])
-        #expect(FormulaireView<Person, EmptyView>.previousFocusId(in: reordered, current: reordered[2]) == reordered[1])
-    }
+private func validPerson() -> TestPerson {
+    let person = TestPerson()
+    person.name = "Taylor"
+    person.address.street = "Main"
+    person.address.country.code = "NL"
+    person.address2.street = "Second"
+    person.address2.country.code = "NL"
+    let phone = TestPhone(id: "primary")
+    phone.label = "Mobile"
+    person.phones = [phone]
+    let optional = TestAddress()
+    optional.street = "Optional"
+    optional.country.code = "NL"
+    person.optionalAddress = optional
+    return person
 }

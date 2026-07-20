@@ -1,5 +1,5 @@
 //
-//  Copyright (c) 2025 @mtzaquia
+//  Copyright (c) 2026 @mtzaquia
 //
 //  Permission is hereby granted, free of charge, to any person obtaining a copy
 //  of this software and associated documentation files (the "Software"), to deal
@@ -27,166 +27,167 @@ import SwiftUI
 public struct FormulaireBuilder<F: Formulaire> {
     @Binding var formulaire: F
     let scrollProxy: ScrollViewProxy
-    @FocusState.Binding var focus: String?
-    let renderedFields: Wrapper<[String]>
-    let parent: String?
-    let validateFunction: () -> Void
+    @FocusState.Binding var focus: FormulairePath?
+    let renderedFields: Binding<[FormulairePath]>
+    let focusCandidates: Binding<[FormulairePath]>
+    let validator: Validator
+    let path: FormulairePath
+    let validateFunction: () -> ValidationResult
 
-    /// Validates the entire form, applying errors as per the individual ``Formulaire/validate()`` methods.
-    /// - Returns: `true` if there are no errors, `false` if there are errors.
+    /// Runs validation and returns an immutable snapshot of the relevant scope.
+    @discardableResult
+    public func validation() -> ValidationResult {
+        if path == .root {
+            return formulaire.runValidation()
+        }
+        return validateFunction()
+    }
+
+    /// Runs validation and reports whether the relevant scope is valid.
     @discardableResult
     public func validate() -> Bool {
-        formulaire.__validator.clearAllErrors()
-        validateFunction()
-        return !formulaire.__validator.hasErrors()
+        validation().isValid
     }
 
-    /// Focus on a given field on the form. For focusing on nested fields, call this function on a scoped builder instead. If the field is invalid or not focusable, nothing
-    /// happens.
+    /// Focuses a rendered, focusable field.
     ///
-    /// - SeeAlso: ``FormulaireBuilder/scope(_:)`` / ``FormulaireBuilder/scope(_:for:)`` for scoping the form and being able to focus
-    /// on nested fields.
-    ///
-    /// - Parameter field: The field path to become focused.
-    public func focus<S>(on field: FieldPath<F, S>) {
-        let concreteField = F.__fields[keyPath: field]
-        let fieldId = [parent, concreteField.label].compactMap(\.self).joined(separator: ".")
-
-        scrollProxy.scrollTo(fieldId)
-        DispatchQueue.main.asyncAfter(deadline: .now()) {
-            focus = fieldId
+    /// - Returns: `true` when the field is currently registered as focusable.
+    @discardableResult
+    public func focus<S>(on field: FieldPath<F, S>) -> Bool {
+        let fieldPath = path.appending(field: F.__fields[keyPath: field].label)
+        guard renderedFields.wrappedValue.contains(fieldPath) else {
+            return false
         }
+
+        focusCandidates.wrappedValue = []
+        scrollProxy.scrollTo(fieldPath)
+        DispatchQueue.main.async {
+            focus = fieldPath
+        }
+        return true
     }
 
-    /// Scopes the builder to a given subject from a list of subjects, allowing you to nest fields inline.
-    ///
-    /// Most of the time, you should be using this helper whenever dealing with a list of subjects, in combination with `ForEach` when building your form.
-    ///
-    /// ```swift
-    /// Section {
-    ///   ForEach(purchase.items) { item in
-    ///     let scoped = form.scope(\.items, for: item)
-    ///     scoped.textField(for: \.summary, label: "Summary")
-    ///   }
-    ///   .onDelete { offsets in
-    ///     purchase.items.remove(atOffsets: offsets) // delete as usual.
-    ///   }
-    ///
-    ///   Button("Add") {
-    ///     purchase.items.append(.init()) // add new rows by appending to the subject as usual.
-    ///   }
-    /// }
-    /// ```
-    ///
-    /// - Parameters:
-    ///   - field: The list field in which the builder should be scoped to.
-    ///   - child: The child the scoped builder will operate on.
-    public func scope<S: Formulaire & Identifiable>(_ field: FieldPath<F, IdentifiedArrayOf<S>>, for child: S) -> FormulaireBuilder<S> {
+    /// Returns a native binding for a field.
+    public func binding<V>(for field: FieldPath<F, V>) -> Binding<V> {
         let concreteField = F.__fields[keyPath: field]
-
-        var list = concreteField.get(formulaire)
-
-        let scopedBuilder = FormulaireBuilder<S>(
-            formulaire: Binding(
-                get: { child },
-                set: { list[id: child.id] = $0 }
-            ),
-            scrollProxy: scrollProxy,
-            focus: $focus,
-            renderedFields: renderedFields,
-            parent: concreteField.label + "[\(child.id.hashValue)]",
-            validateFunction: {
-                formulaire.validate(field)
-            }
+        return Binding(
+            get: { concreteField.get(formulaire) },
+            set: { concreteField.set(formulaire, $0) }
         )
-
-        return scopedBuilder
     }
 
-    /// Scopes the builder to a nested subject on the top-level subject, allowing you to nest fields inline.
-    ///
-    /// ```swift
-    /// form.textField(for: \.name, label: "Address name")
-    ///
-    /// Section {
-    ///   let scoped = form.scope(\.address)
-    ///   scoped.textField(for: \.addressLine1, label: "Address line 1")
-    ///   scoped.textField(for: \.addressLine2, label: "Address line 1")
-    ///   scoped.textField(for: \.zipCode, label: "ZIP code")
-    ///   scoped.textField(for: \.city, label: "City")
-    /// }
-    /// ```
-    ///
-    /// - Parameters:
-    ///   - field: The nested field in which the builder should be scoped to.
-    public func scope<S: Formulaire>(_ field: FieldPath<F, S>) -> FormulaireBuilder<S> {
+    /// Returns the current error for a field, if one exists.
+    public func error<V>(for field: FieldPath<F, V>) -> (any Error)? {
         let concreteField = F.__fields[keyPath: field]
-
-        let scopedBuilder = FormulaireBuilder<S>(
-            formulaire: Binding(
-                get: {
-                    concreteField.get(formulaire)
-                },
-                set: {
-                    concreteField.set(formulaire, $0)
-                }
-            ),
-            scrollProxy: scrollProxy,
-            focus: $focus,
-            renderedFields: renderedFields,
-            parent: concreteField.label,
-            validateFunction: {
-                formulaire.validate(field)
-            }
-        )
-
-        return scopedBuilder
+        return validator.errors[path.appending(field: concreteField.label)]
     }
 
-    /// Scopes the builder to a nested optional subject on the top-level subject, allowing you to nest fields inline. Use this method when the nested object is
-    /// optional.
+    /// Scopes to the identified child currently stored in a list.
     ///
-    /// ```swift
-    /// form.textField(for: \.name, label: "Address name")
-    ///
-    /// Section {
-    ///   if let scoped = form.scope(\.optionalAddress) {
-    ///     scoped.textField(for: \.addressLine1, label: "Address line 1")
-    ///     scoped.textField(for: \.addressLine2, label: "Address line 1")
-    ///     scoped.textField(for: \.zipCode, label: "ZIP code")
-    ///     scoped.textField(for: \.city, label: "City")
-    ///   }
-    /// }
-    /// ```
-    ///
-    /// - Parameters:
-    ///   - field: The nested field in which the builder should be scoped to.
-    public func scope<S: Formulaire>(_ field: FieldPath<F, Optional<S>>) -> FormulaireBuilder<S>? where Optional<S>: Formulaire {
+    /// Returning `nil` prevents a stale or foreign child from creating a phantom
+    /// form row.
+    public func scope<S: Formulaire & Identifiable>(
+        _ field: FieldPath<F, IdentifiedArrayOf<S>>,
+        id: S.ID
+    ) -> FormulaireBuilder<S>? {
         let concreteField = F.__fields[keyPath: field]
-
-        guard let child = concreteField.get(formulaire) else {
+        guard let initialValue = concreteField.get(formulaire)[id: id] else {
             return nil
         }
 
-        let scopedBuilder = FormulaireBuilder<S>(
+        let childPath = path
+            .appending(field: concreteField.label)
+            .appending(elementID: id)
+
+        return FormulaireBuilder<S>(
             formulaire: Binding(
                 get: {
-                    child
+                    concreteField.get(formulaire)[id: id] ?? initialValue
                 },
-                set: {
-                    concreteField.set(formulaire, $0)
+                set: { newValue in
+                    var list = concreteField.get(formulaire)
+                    guard list[id: id] != nil else { return }
+                    list[id: id] = newValue
+                    concreteField.set(formulaire, list)
                 }
             ),
             scrollProxy: scrollProxy,
             focus: $focus,
             renderedFields: renderedFields,
-            parent: concreteField.label,
+            focusCandidates: focusCandidates,
+            validator: validator,
+            path: childPath,
             validateFunction: {
-                formulaire.validate(field)
+                guard let child = concreteField.get(formulaire)[id: id] else {
+                    return ValidationResult()
+                }
+                return validator.replaceValidation(of: child, at: childPath)
             }
         )
+    }
 
-        return scopedBuilder
+    /// Scopes to a child from an identified list.
+    ///
+    /// Prefer ``scope(_:id:)`` when the caller can naturally work with an ID.
+    public func scope<S: Formulaire & Identifiable>(
+        _ field: FieldPath<F, IdentifiedArrayOf<S>>,
+        for child: S
+    ) -> FormulaireBuilder<S>? {
+        scope(field, id: child.id)
+    }
+
+    /// Scopes to a nested Formulaire subject.
+    public func scope<S: Formulaire>(_ field: FieldPath<F, S>) -> FormulaireBuilder<S> {
+        let concreteField = F.__fields[keyPath: field]
+        let childPath = path.appending(field: concreteField.label)
+
+        return FormulaireBuilder<S>(
+            formulaire: Binding(
+                get: { concreteField.get(formulaire) },
+                set: { concreteField.set(formulaire, $0) }
+            ),
+            scrollProxy: scrollProxy,
+            focus: $focus,
+            renderedFields: renderedFields,
+            focusCandidates: focusCandidates,
+            validator: validator,
+            path: childPath,
+            validateFunction: {
+                validator.replaceValidation(of: concreteField.get(formulaire), at: childPath)
+            }
+        )
+    }
+
+    /// Scopes to a nested optional Formulaire subject when it exists.
+    public func scope<S: Formulaire>(
+        _ field: FieldPath<F, Optional<S>>
+    ) -> FormulaireBuilder<S>? {
+        let concreteField = F.__fields[keyPath: field]
+        guard let initialValue = concreteField.get(formulaire) else {
+            return nil
+        }
+
+        let childPath = path.appending(field: concreteField.label)
+        return FormulaireBuilder<S>(
+            formulaire: Binding(
+                get: {
+                    concreteField.get(formulaire) ?? initialValue
+                },
+                set: { concreteField.set(formulaire, $0) }
+            ),
+            scrollProxy: scrollProxy,
+            focus: $focus,
+            renderedFields: renderedFields,
+            focusCandidates: focusCandidates,
+            validator: validator,
+            path: childPath,
+            validateFunction: {
+                guard let child = concreteField.get(formulaire) else {
+                    validator.clearAllErrors(in: childPath)
+                    return ValidationResult()
+                }
+                return validator.replaceValidation(of: child, at: childPath)
+            }
+        )
     }
 }
-
