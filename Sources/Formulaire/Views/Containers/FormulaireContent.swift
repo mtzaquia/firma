@@ -24,12 +24,12 @@ import SwiftUI
 
 /// Hosts Formulaire controls without imposing a `Form`, `List`, or scroll layout.
 ///
-/// Use this variant when an app needs to supply its own container:
+/// Supply the visual container that fits the screen:
 ///
 /// ```swift
 /// FormulaireContent(editing: $model) { form in
-///   ScrollView {
-///     VStack { form.textField(for: \.name, label: "Name") }
+///   Form {
+///     form.textField(for: \.name, label: "Name")
 ///   }
 /// }
 /// ```

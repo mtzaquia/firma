@@ -2,19 +2,21 @@
 
 Formulaire separates form behavior from layout. Choose the container the screen needs, then mix convenience controls with any custom SwiftUI view.
 
-## Choose a container
+## Choose a layout
 
-`FormulaireView` wraps its content in a native SwiftUI `Form`:
+`FormulaireContent` installs the builder, validation, scrolling, and focus coordination while the app owns the complete visual hierarchy. For a native SwiftUI form:
 
 ```swift
-FormulaireView(editing: $model) { form in
-  Section("Account") {
-    form.textField(for: \.email, label: "Email")
+FormulaireContent(editing: $model) { form in
+  Form {
+    Section("Account") {
+      form.textField(for: \.email, label: "Email")
+    }
   }
 }
 ```
 
-`FormulaireContent` installs the builder, validation, scrolling, and focus coordination without imposing a `Form`, `List`, or scroll layout:
+For a custom layout:
 
 ```swift
 FormulaireContent(editing: $model) { form in
@@ -27,7 +29,7 @@ FormulaireContent(editing: $model) { form in
 }
 ```
 
-Both containers expose the same builder API.
+Both layouts use the same builder API.
 
 ## Convenience controls
 
@@ -125,8 +127,10 @@ The asynchronous action runs in a main-actor task. Its button disables while tha
 `formulaireStyle(_:)` changes the convenience controls in one environment subtree:
 
 ```swift
-FormulaireView(editing: $model) { form in
-  // ...
+FormulaireContent(editing: $model) { form in
+  Form {
+    // ...
+  }
 }
 .formulaireStyle(
   FormulaireStyle(

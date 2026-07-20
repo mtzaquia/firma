@@ -53,7 +53,7 @@ The macro diagnoses a public writable property whose type exists only in its ini
 
 ## Render the form
 
-Own the reference model with `@State` and pass a binding to `FormulaireView`. The container supplies a SwiftUI `Form`, validation state, scrolling, focus coordination, and the iOS keyboard controls.
+Own the reference model with `@State` and pass a binding to `FormulaireContent`. It supplies validation state, scrolling, focus coordination, and the iOS keyboard controls; the app supplies the visual container.
 
 ```swift
 import SwiftUI
@@ -62,12 +62,14 @@ struct ProfileView: View {
   @State private var profile = ProfileForm()
 
   var body: some View {
-    FormulaireView(editing: $profile) { form in
-      form.textField(for: \.displayName, label: "Display name")
-      form.stepper(for: \.age, label: "Age", range: 0...120)
+    FormulaireContent(editing: $profile) { form in
+      Form {
+        form.textField(for: \.displayName, label: "Display name")
+        form.stepper(for: \.age, label: "Age", range: 0...120)
 
-      form.submitButton("Save") {
-        save(profile)
+        form.submitButton("Save") {
+          save(profile)
+        }
       }
     }
   }
@@ -78,7 +80,7 @@ Although `\.displayName` looks like a writable model key path, Swift infers a ke
 
 ## Bring your own layout
 
-`FormulaireContent` installs the same builder and coordination system without adding a `Form`, `List`, or scroll view:
+Replace the native `Form` with any layout without changing the builder or coordination system:
 
 ```swift
 FormulaireContent(editing: $profile) { form in

@@ -11,12 +11,14 @@ Keep editable state and validation rules together in an observable model. Formul
 - Use a native SwiftUI `Form` or supply the complete layout yourself.
 
 ```swift
-FormulaireView(editing: $profile) { form in
-  form.textField(for: \.name, label: "Name")
-  form.textField(for: \.email, label: "Email")
+FormulaireContent(editing: $profile) { form in
+  Form {
+    form.textField(for: \.name, label: "Name")
+    form.textField(for: \.email, label: "Email")
 
-  form.submitButton("Save profile") {
-    save(profile)
+    form.submitButton("Save profile") {
+      save(profile)
+    }
   }
 }
 ```
@@ -73,7 +75,7 @@ final class ProfileForm {
 
 Formulaire's runtime API is main-actor isolated. Add `@MainActor` when the consuming target does not already use main-actor default isolation.
 
-Own the model with SwiftUI, then pass its binding to `FormulaireView`:
+Own the model with SwiftUI, then pass its binding to `FormulaireContent`. The app supplies the visual container:
 
 ```swift
 import SwiftUI
@@ -82,15 +84,17 @@ struct ProfileView: View {
   @State private var profile = ProfileForm()
 
   var body: some View {
-    FormulaireView(editing: $profile) { form in
-      Section("Profile") {
-        form.textField(for: \.name, label: "Name")
-        form.textField(for: \.email, label: "Email")
-        form.toggle(for: \.receivesUpdates, label: "Product updates")
-      }
+    FormulaireContent(editing: $profile) { form in
+      Form {
+        Section("Profile") {
+          form.textField(for: \.name, label: "Name")
+          form.textField(for: \.email, label: "Email")
+          form.toggle(for: \.receivesUpdates, label: "Product updates")
+        }
 
-      form.submitButton("Save profile") {
-        save(profile)
+        form.submitButton("Save profile") {
+          save(profile)
+        }
       }
     }
   }
@@ -99,7 +103,7 @@ struct ProfileView: View {
 
 The submit button starts a fresh validation pass. If the model is valid, it runs the action. If not, the built-in controls show their errors and Formulaire scrolls to and focuses the first rendered, focusable field with an error—even when that field lives in lazy content.
 
-Use `FormulaireContent` when the app owns the `ScrollView`, grid, or other container. Use `control(for:focusable:)` to connect a custom control to the same binding, validation, identity, and focus system.
+`FormulaireContent` never imposes a `Form`, `ScrollView`, grid, or other layout. Use `control(for:focusable:)` to connect a custom control to the same binding, validation, identity, and focus system.
 
 That is the core idea: the model owns the rules, scopes preserve field identity, and the builder coordinates rendering, validation, and focus.
 

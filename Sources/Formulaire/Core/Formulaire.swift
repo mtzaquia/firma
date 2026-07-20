@@ -24,10 +24,10 @@ import SwiftUI
 
 @attached(member, names: named(Fields), named(__fields), named(__validator))
 @attached(extension, conformances: Formulaire)
-/// A macro that allows a class to be used as the subject of a ``FormulaireView``.
+/// A macro that allows a class to be used as the subject of ``FormulaireContent``.
 public macro Formulaire() = #externalMacro(module: "FormulaireMacros", type: "FormulaireMacro")
 
-/// The protocol allowing a class to be used as the subject of a ``FormulaireView``.
+/// The protocol allowing a class to be used as the subject of ``FormulaireContent``.
 /// - Important: You don't conform to this protocol directly. Use the ``Formulaire()`` macro instead.
 public protocol Formulaire {
     /// A function implementing validation logic for this subject.
