@@ -22,12 +22,35 @@
 
 import SwiftUI
 
-struct FormulaireFieldOrderPreferenceKey: PreferenceKey {
-    static var defaultValue: [FormulairePath] = []
+struct FormulaireFieldOrderEntry: Equatable {
+    let path: FormulairePath
+    let frame: CGRect
+}
 
-    static func reduce(value: inout [FormulairePath], nextValue: () -> [FormulairePath]) {
-        for path in nextValue() where !value.contains(path) {
-            value.append(path)
+struct FormulaireFieldOrderPreferenceKey: PreferenceKey {
+    static var defaultValue: [FormulaireFieldOrderEntry] = []
+
+    static func reduce(
+        value: inout [FormulaireFieldOrderEntry],
+        nextValue: () -> [FormulaireFieldOrderEntry]
+    ) {
+        for entry in nextValue() {
+            if let index = value.firstIndex(where: { $0.path == entry.path }) {
+                value[index] = entry
+            } else {
+                value.append(entry)
+            }
         }
+    }
+
+    static func orderedPaths(from entries: [FormulaireFieldOrderEntry]) -> [FormulairePath] {
+        entries
+            .sorted { lhs, rhs in
+                if abs(lhs.frame.minY - rhs.frame.minY) > 0.5 {
+                    return lhs.frame.minY < rhs.frame.minY
+                }
+                return lhs.frame.minX < rhs.frame.minX
+            }
+            .map(\.path)
     }
 }

@@ -41,9 +41,20 @@ public extension FormulaireBuilder {
             )
         )
         .id(fieldPath)
-        .preference(
-            key: FormulaireFieldOrderPreferenceKey.self,
-            value: focusable ? [fieldPath] : []
-        )
+        .background {
+            if focusable {
+                GeometryReader { proxy in
+                    Color.clear.preference(
+                        key: FormulaireFieldOrderPreferenceKey.self,
+                        value: [
+                            FormulaireFieldOrderEntry(
+                                path: fieldPath,
+                                frame: proxy.frame(in: .global)
+                            )
+                        ]
+                    )
+                }
+            }
+        }
     }
 }

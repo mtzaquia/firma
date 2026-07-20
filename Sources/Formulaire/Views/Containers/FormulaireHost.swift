@@ -26,6 +26,7 @@ struct FormulaireHost<F: Formulaire, Content: View>: View {
     @Binding var subject: F
     @FocusState private var focus: FormulairePath?
     @State private var renderedFields: [FormulairePath] = []
+    @State private var focusOrder: [FormulairePath] = []
     @State private var focusCandidates: [FormulairePath] = []
 
     @ViewBuilder let content: (FormulaireBuilder<F>) -> Content
@@ -36,6 +37,7 @@ struct FormulaireHost<F: Formulaire, Content: View>: View {
             let focusCoordinator = FormulaireFocusCoordinator(
                 focus: $focus,
                 renderedFields: $renderedFields,
+                focusOrder: $focusOrder,
                 pendingCandidates: $focusCandidates,
                 scrollProxy: proxy
             )
@@ -49,14 +51,12 @@ struct FormulaireHost<F: Formulaire, Content: View>: View {
                     validateFunction: { root.wrappedValue.runValidation() }
                 )
             )
-            .onPreferenceChange(FormulaireFieldOrderPreferenceKey.self) { fields in
-                focusCoordinator.updateRenderedFields(fields)
+            .onPreferenceChange(FormulaireFieldOrderPreferenceKey.self) { entries in
+                focusCoordinator.updateRenderedFields(
+                    FormulaireFieldOrderPreferenceKey.orderedPaths(from: entries)
+                )
             }
-            .formulaireKeyboardToolbar(
-                focus: $focus,
-                renderedFields: renderedFields,
-                proxy: proxy
-            )
+            .formulaireKeyboardToolbar(focusCoordinator)
         }
     }
 }

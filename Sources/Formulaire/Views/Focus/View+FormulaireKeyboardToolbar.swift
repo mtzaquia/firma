@@ -24,21 +24,15 @@ import SwiftUI
 
 extension View {
     @ViewBuilder
-    func formulaireKeyboardToolbar(
-        focus: FocusState<FormulairePath?>.Binding,
-        renderedFields: [FormulairePath],
-        proxy: ScrollViewProxy
-    ) -> some View {
+    func formulaireKeyboardToolbar(_ focusCoordinator: FormulaireFocusCoordinator) -> some View {
         #if os(iOS)
         let info = Bundle.main.infoDictionary
         if #available(iOS 26, *), (info?["UIDesignRequiresCompatibility"] as? Bool) != true {
             safeAreaBar(edge: .bottom) {
                 ZStack {
-                    if focus.wrappedValue != nil {
+                    if focusCoordinator.focus.wrappedValue != nil {
                         FormulaireKeyboardControls(
-                            focus: focus,
-                            renderedFields: renderedFields,
-                            proxy: proxy,
+                            focusCoordinator: focusCoordinator,
                             iconOnlyDoneButton: true
                         )
                         .padding()
@@ -47,15 +41,13 @@ extension View {
                     }
                 }
                 .padding([.horizontal, .bottom])
-                .animation(.snappy, value: focus.wrappedValue != nil)
+                .animation(.snappy, value: focusCoordinator.focus.wrappedValue != nil)
             }
         } else {
             toolbar {
                 ToolbarItemGroup(placement: .keyboard) {
                     FormulaireKeyboardControls(
-                        focus: focus,
-                        renderedFields: renderedFields,
-                        proxy: proxy,
+                        focusCoordinator: focusCoordinator,
                         iconOnlyDoneButton: false
                     )
                 }

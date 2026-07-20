@@ -21,6 +21,56 @@
 //
 
 enum FormulaireFocusOrder {
+    static func reconciling(
+        _ snapshot: [FormulairePath],
+        with existing: [FormulairePath]
+    ) -> [FormulairePath] {
+        let snapshot = snapshot.reduce(into: [FormulairePath]()) { fields, path in
+            if !fields.contains(path) {
+                fields.append(path)
+            }
+        }
+        guard !snapshot.isEmpty else { return existing }
+
+        var result = existing.reduce(into: [FormulairePath]()) { fields, path in
+            if !fields.contains(path) {
+                fields.append(path)
+            }
+        }
+
+        let snapshotSet = Set(snapshot)
+        let visibleIndices = result.indices.filter { snapshotSet.contains(result[$0]) }
+        if let first = visibleIndices.first, let last = visibleIndices.last, first < last {
+            result = result.enumerated().compactMap { index, path in
+                guard index < first || index > last || snapshotSet.contains(path) else {
+                    return nil
+                }
+                return path
+            }
+        }
+
+        let occupiedIndices = result.indices.filter { snapshotSet.contains(result[$0]) }
+        let existingSnapshot = snapshot.filter { result.contains($0) }
+        for (index, path) in zip(occupiedIndices, existingSnapshot) {
+            result[index] = path
+        }
+
+        for (snapshotIndex, path) in snapshot.enumerated() where !result.contains(path) {
+            let previous = snapshot[..<snapshotIndex].reversed().first { result.contains($0) }
+            let following = snapshot[snapshot.index(after: snapshotIndex)...].first { result.contains($0) }
+
+            if let previous, let index = result.firstIndex(of: previous) {
+                result.insert(path, at: result.index(after: index))
+            } else if let following, let index = result.firstIndex(of: following) {
+                result.insert(path, at: index)
+            } else {
+                result.append(path)
+            }
+        }
+
+        return result
+    }
+
     static func previous(
         in fields: [FormulairePath],
         current: FormulairePath?

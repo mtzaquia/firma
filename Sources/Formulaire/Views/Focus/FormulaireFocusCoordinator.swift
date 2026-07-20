@@ -25,61 +25,70 @@ import SwiftUI
 struct FormulaireFocusCoordinator {
     let focus: FocusState<FormulairePath?>.Binding
     let renderedFields: Binding<[FormulairePath]>
+    let focusOrder: Binding<[FormulairePath]>
     let pendingCandidates: Binding<[FormulairePath]>
     let scrollProxy: ScrollViewProxy
 
     func updateRenderedFields(_ fields: [FormulairePath]) {
         renderedFields.wrappedValue = fields
-
-        if let candidate = pendingCandidates.wrappedValue.first, fields.contains(candidate) {
-            pendingCandidates.wrappedValue = []
-            DispatchQueue.main.async {
-                focus.wrappedValue = candidate
-            }
-            return
-        }
-
-        if let focusedField = focus.wrappedValue, !fields.contains(focusedField) {
-            focus.wrappedValue = nil
+        let reconciledOrder = FormulaireFocusOrder.reconciling(
+            fields,
+            with: focusOrder.wrappedValue
+        )
+        if reconciledOrder != focusOrder.wrappedValue {
+            focusOrder.wrappedValue = reconciledOrder
         }
     }
 
     @discardableResult
     func focus(on field: FormulairePath) -> Bool {
-        guard renderedFields.wrappedValue.contains(field) else {
+        guard focusOrder.wrappedValue.contains(field) else {
             return false
         }
 
-        pendingCandidates.wrappedValue = []
-        scrollProxy.scrollTo(field)
-        DispatchQueue.main.async {
-            focus.wrappedValue = field
-        }
+        attemptFocus(on: [field], clearingCurrentFocus: true)
         return true
     }
 
-    func focusFirstError(in result: ValidationResult) {
-        attemptFocus(on: result.errorPaths)
+    func move(to field: FormulairePath?) {
+        guard let field else { return }
+        attemptFocus(on: [field], clearingCurrentFocus: false)
     }
 
-    private func attemptFocus(on candidates: [FormulairePath]) {
+    func focusFirstError(in result: ValidationResult) {
+        attemptFocus(on: result.errorPaths, clearingCurrentFocus: true)
+    }
+
+    private func attemptFocus(
+        on candidates: [FormulairePath],
+        clearingCurrentFocus: Bool
+    ) {
         guard let candidate = candidates.first else {
             pendingCandidates.wrappedValue = []
             return
         }
 
-        focus.wrappedValue = nil
+        if clearingCurrentFocus {
+            focus.wrappedValue = nil
+        }
         pendingCandidates.wrappedValue = candidates
         scrollProxy.scrollTo(candidate, anchor: .center)
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+        // A lazy Form can advertise a preference before the destination's
+        // native control is ready to accept focus. Give scrolling and mounting
+        // one layout pass before assigning the FocusState value.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
             guard pendingCandidates.wrappedValue.first == candidate else { return }
 
             if renderedFields.wrappedValue.contains(candidate) {
                 pendingCandidates.wrappedValue = []
                 focus.wrappedValue = candidate
             } else {
-                attemptFocus(on: Array(candidates.dropFirst()))
+                focusOrder.wrappedValue.removeAll { $0 == candidate }
+                attemptFocus(
+                    on: Array(candidates.dropFirst()),
+                    clearingCurrentFocus: clearingCurrentFocus
+                )
             }
         }
     }

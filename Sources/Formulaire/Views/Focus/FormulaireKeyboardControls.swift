@@ -24,28 +24,28 @@ import SwiftUI
 
 #if os(iOS)
 struct FormulaireKeyboardControls: View {
-    @FocusState.Binding var focus: FormulairePath?
-    let renderedFields: [FormulairePath]
-    let proxy: ScrollViewProxy
+    let focusCoordinator: FormulaireFocusCoordinator
     let iconOnlyDoneButton: Bool
 
     var body: some View {
         HStack(spacing: iconOnlyDoneButton ? 24 : 12) {
             Button("Previous", systemImage: "chevron.up") {
-                move(to: FormulaireFocusOrder.previous(in: renderedFields, current: focus))
+                focusCoordinator.move(to: previousField)
             }
             .labelStyle(.iconOnly)
-            .disabled(FormulaireFocusOrder.previous(in: renderedFields, current: focus) == nil)
+            .disabled(previousField == nil)
 
             Button("Next", systemImage: "chevron.down") {
-                move(to: FormulaireFocusOrder.next(in: renderedFields, current: focus))
+                focusCoordinator.move(to: nextField)
             }
             .labelStyle(.iconOnly)
-            .disabled(FormulaireFocusOrder.next(in: renderedFields, current: focus) == nil)
+            .disabled(nextField == nil)
 
             Spacer(minLength: 0)
 
-            Button("Done", systemImage: "checkmark") { focus = nil }
+            Button("Done", systemImage: "checkmark") {
+                focusCoordinator.focus.wrappedValue = nil
+            }
                 .labelStyle(iconOnlyDoneButton ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.titleOnly))
                 .bold()
         }
@@ -54,10 +54,18 @@ struct FormulaireKeyboardControls: View {
         .fontWeight(.medium)
     }
 
-    private func move(to destination: FormulairePath?) {
-        guard let destination else { return }
-        proxy.scrollTo(destination)
-        DispatchQueue.main.async { focus = destination }
+    private var previousField: FormulairePath? {
+        FormulaireFocusOrder.previous(
+            in: focusCoordinator.focusOrder.wrappedValue,
+            current: focusCoordinator.focus.wrappedValue
+        )
+    }
+
+    private var nextField: FormulairePath? {
+        FormulaireFocusOrder.next(
+            in: focusCoordinator.focusOrder.wrappedValue,
+            current: focusCoordinator.focus.wrappedValue
+        )
     }
 }
 

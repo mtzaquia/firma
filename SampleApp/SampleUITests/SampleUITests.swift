@@ -48,7 +48,7 @@ nonisolated final class SampleUITests: XCTestCase {
 
         XCTAssertTrue(app.buttons["Next"].waitForExistence(timeout: 2))
         app.buttons["Next"].tap()
-        XCTAssertTrue(email.hasKeyboardFocus)
+        XCTAssertTrue(waitForKeyboardFocus(on: email))
         app.buttons["Done"].tap()
         XCTAssertFalse(email.hasKeyboardFocus)
     }
@@ -107,6 +107,71 @@ nonisolated final class SampleUITests: XCTestCase {
         removeFirst.tap()
         XCTAssertFalse(app.buttons[A11y.listRemove("attendee-1")].exists)
         XCTAssertTrue(app.buttons[A11y.listRemove("attendee-2")].exists)
+    }
+
+    @MainActor
+    func testDynamicListKeyboardNavigation() {
+        launch(.dynamicList)
+        XCTAssertTrue(app.descendants(matching: .any)[A11y.listScreen].waitForExistence(timeout: 3))
+
+        for _ in 0..<5 {
+            let add = app.buttons[A11y.listAdd]
+            XCTAssertTrue(scrollUntilExists(add, direction: .up))
+            add.tap()
+        }
+
+        let first = app.textFields[A11y.listName("attendee-1")]
+        XCTAssertTrue(scrollUntilHittable(first, direction: .down))
+        first.tap()
+        XCTAssertTrue(waitForKeyboardFocus(on: first))
+
+        for id in 2...5 {
+            let next = app.buttons["Next"]
+            XCTAssertTrue(next.waitForExistence(timeout: 2))
+            XCTAssertTrue(next.isEnabled, "Next unexpectedly disabled before attendee-\(id)")
+            next.tap()
+            let expected = app.textFields[A11y.listName("attendee-\(id)")]
+            let focusedExpected = waitForKeyboardFocus(on: expected)
+            let focusedIDs = (1...5).filter { id in
+                let field = app.textFields[A11y.listName("attendee-\(id)")]
+                return field.exists && field.hasKeyboardFocus
+            }
+            XCTAssertTrue(
+                focusedExpected,
+                "Expected attendee-\(id), focused attendee IDs: \(focusedIDs)"
+            )
+        }
+
+        for id in stride(from: 4, through: 1, by: -1) {
+            let previous = app.buttons["Previous"]
+            XCTAssertTrue(previous.isEnabled, "Previous unexpectedly disabled before attendee-\(id)")
+            previous.tap()
+            XCTAssertTrue(waitForKeyboardFocus(on: app.textFields[A11y.listName("attendee-\(id)")]))
+        }
+
+        dismissKeyboard()
+        let moveFirstDown = app.buttons[A11y.listMoveFirstDown]
+        XCTAssertTrue(scrollUntilHittable(moveFirstDown, direction: .up))
+        moveFirstDown.tap()
+
+        let second = app.textFields[A11y.listName("attendee-2")]
+        XCTAssertTrue(scrollUntilHittable(second, direction: .down))
+        second.tap()
+        XCTAssertTrue(waitForKeyboardFocus(on: second))
+        app.buttons["Next"].tap()
+        XCTAssertTrue(waitForKeyboardFocus(on: app.textFields[A11y.listName("attendee-1")]))
+
+        dismissKeyboard()
+        let removeFirst = app.buttons[A11y.listRemove("attendee-1")]
+        XCTAssertTrue(scrollUntilHittable(removeFirst, direction: .up))
+        removeFirst.tap()
+        XCTAssertFalse(removeFirst.waitForExistence(timeout: 2))
+
+        XCTAssertTrue(scrollUntilHittable(second, direction: .down))
+        second.tap()
+        XCTAssertTrue(waitForKeyboardFocus(on: second))
+        app.buttons["Next"].tap()
+        XCTAssertTrue(waitForKeyboardFocus(on: app.textFields[A11y.listName("attendee-3")]))
     }
 
     @MainActor

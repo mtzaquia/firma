@@ -226,6 +226,74 @@ struct FormulaireFocusOrderTests {
         #expect(FormulaireFocusOrder.next(in: before, current: before[0]) == firstPath)
         #expect(FormulaireFocusOrder.next(in: after, current: after[0]) == secondPath)
     }
+
+    @Test("lazy snapshots preserve and extend logical order")
+    func lazySnapshots() {
+        let event = field("event")
+        let first = field("attendees", "first")
+        let second = field("attendees", "second")
+        let third = field("attendees", "third")
+        let fourth = field("attendees", "fourth")
+
+        var order = FormulaireFocusOrder.reconciling(
+            [event, first, second],
+            with: []
+        )
+        order = FormulaireFocusOrder.reconciling(
+            [second, third, fourth],
+            with: order
+        )
+
+        #expect(order == [event, first, second, third, fourth])
+        #expect(FormulaireFocusOrder.next(in: order, current: third) == fourth)
+        #expect(FormulaireFocusOrder.previous(in: order, current: third) == second)
+    }
+
+    @Test("visible reordering updates known fields in place")
+    func visibleReordering() {
+        let event = field("event")
+        let first = field("attendees", "first")
+        let second = field("attendees", "second")
+        let third = field("attendees", "third")
+        let submit = field("submit")
+
+        let order = FormulaireFocusOrder.reconciling(
+            [second, first, third],
+            with: [event, first, second, third, submit]
+        )
+
+        #expect(order == [event, second, first, third, submit])
+    }
+
+    @Test("field order follows visual position, not preference reduction order")
+    func visualFieldOrder() {
+        let first = field("first")
+        let second = field("second")
+        let third = field("third")
+        let entries = [
+            FormulaireFieldOrderEntry(path: third, frame: CGRect(x: 0, y: 300, width: 100, height: 40)),
+            FormulaireFieldOrderEntry(path: first, frame: CGRect(x: 0, y: 100, width: 100, height: 40)),
+            FormulaireFieldOrderEntry(path: second, frame: CGRect(x: 0, y: 200, width: 100, height: 40)),
+        ]
+
+        #expect(FormulaireFieldOrderPreferenceKey.orderedPaths(from: entries) == [first, second, third])
+    }
+
+    @Test("missing fields between visible anchors are pruned")
+    func removedFields() {
+        let event = field("event")
+        let removed = field("attendees", "removed")
+        let second = field("attendees", "second")
+        let third = field("attendees", "third")
+        let offscreen = field("attendees", "offscreen")
+
+        let order = FormulaireFocusOrder.reconciling(
+            [event, second, third],
+            with: [event, removed, second, third, offscreen]
+        )
+
+        #expect(order == [event, second, third, offscreen])
+    }
 }
 
 private func field(_ components: String...) -> FormulairePath {
