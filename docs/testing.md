@@ -1,6 +1,6 @@
 # Testing
 
-The sample application is both an API catalogue and a deterministic UI-test fixture. Open `Sample/Sample.xcodeproj` and run the `Sample` scheme to browse it.
+The sample application is both an API catalogue and a deterministic UI-test fixture. Open `SampleApp/Sample.xcodeproj` and run the `Sample` scheme to browse it.
 
 ## Scenarios
 
@@ -31,7 +31,7 @@ Run the `SampleUITests` scheme from Xcode or with a simulator destination:
 
 ```sh
 xcodebuild \
-  -project Sample/Sample.xcodeproj \
+  -project SampleApp/Sample.xcodeproj \
   -scheme SampleUITests \
   -destination 'platform=iOS Simulator,name=iPhone 16 Pro' \
   test

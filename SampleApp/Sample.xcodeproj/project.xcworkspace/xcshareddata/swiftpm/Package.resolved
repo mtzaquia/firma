@@ -1,5 +1,5 @@
 {
-  "originHash" : "13523893ad09c1a7dd3a0b99f7380f42c638fa3eb2078f64a8dff99986ff8e6a",
+  "originHash" : "292477e9a4d3d8407bb3502deed835a11509e6b63f91040639ebe9907710c59c",
   "pins" : [
     {
       "identity" : "swift-collections",
@@ -8,6 +8,15 @@
       "state" : {
         "revision" : "8c0c0a8b49e080e54e5e328cc552821ff07cd341",
         "version" : "1.2.1"
+      }
+    },
+    {
+      "identity" : "swift-identified-collections",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/pointfreeco/swift-identified-collections.git",
+      "state" : {
+        "revision" : "322d9ffeeba85c9f7c4984b39422ec7cc3c56597",
+        "version" : "1.1.1"
       }
     },
     {

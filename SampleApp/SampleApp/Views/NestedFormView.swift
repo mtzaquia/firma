@@ -38,12 +38,12 @@ struct NestedFormView: View {
                     )
 
                     Button("Remove alternate address", role: .destructive) {
-                        model.alternateAddress = nil
+                        form.binding(for: \.alternateAddress).wrappedValue = nil
                     }
                     .accessibilityIdentifier(SampleAppAccessibility.nestingRemoveAlternate)
                 } else {
                     Button("Add alternate address") {
-                        model.alternateAddress = AddressFormModel()
+                        form.binding(for: \.alternateAddress).wrappedValue = AddressFormModel()
                     }
                     .accessibilityIdentifier(SampleAppAccessibility.nestingAddAlternate)
                 }

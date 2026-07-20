@@ -133,35 +133,3 @@ public final class Validator {
         errors.merge(result.errors, uniquingKeysWith: { _, new in new })
     }
 }
-
-public extension Formulaire {
-    /// Runs a complete validation pass, clearing stale errors first.
-    @discardableResult
-    func runValidation() -> ValidationResult {
-        __validator.evaluate(self, at: .root)
-    }
-
-    /// Attaches an error to a field during the current validation pass.
-    func addError<V>(_ error: any Error, for field: FieldPath<Self, V>) {
-        let concreteField = Self.__fields[keyPath: field]
-        __validator.addError(error, for: concreteField.label)
-    }
-
-    /// Reuses the validation rules of a nested Formulaire subject.
-    func validate<F: Formulaire>(_ nested: FieldPath<Self, F>) {
-        let concreteField = Self.__fields[keyPath: nested]
-        __validator.validateNested(concreteField.get(self), field: concreteField.label)
-    }
-
-    /// Reuses a nested subject's validation rules when the optional contains a value.
-    func validate<F: Formulaire>(_ nested: FieldPath<Self, F?>) {
-        let concreteField = Self.__fields[keyPath: nested]
-        __validator.validateNested(concreteField.get(self), field: concreteField.label)
-    }
-
-    /// Reuses the validation rules of every subject in an identified list.
-    func validate<F: Formulaire>(_ nested: FieldPath<Self, IdentifiedArrayOf<F>>) {
-        let concreteField = Self.__fields[keyPath: nested]
-        __validator.validateNested(concreteField.get(self), field: concreteField.label)
-    }
-}

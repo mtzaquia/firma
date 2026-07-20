@@ -105,7 +105,7 @@ That is the core idea: the model owns validation rules, structured scopes preser
 
 ## Sample app
 
-Open [`Sample/Sample.xcodeproj`](Sample/Sample.xcodeproj) to exercise convenience and custom controls, manual and asynchronous submission, deep and optional scopes, dynamic identified lists, validation summaries, styling, and keyboard navigation.
+Open [`SampleApp/Sample.xcodeproj`](SampleApp/Sample.xcodeproj) to exercise convenience and custom controls, manual and asynchronous submission, deep and optional scopes, dynamic identified lists, validation summaries, styling, and keyboard navigation.
 
 The `SampleUITests` scheme launches each scenario directly and verifies the same runtime paths. See [Testing](docs/testing.md) for the fixture contract.
 

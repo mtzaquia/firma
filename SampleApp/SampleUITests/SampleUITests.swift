@@ -60,14 +60,18 @@ nonisolated final class SampleUITests: XCTestCase {
 
         app.buttons[A11y.nestingSubmit].tap()
         XCTAssertTrue(app.staticTexts[A11y.nestingErrorCount].label.contains("3 nested errors"))
+        dismissKeyboard()
 
         app.buttons[A11y.nestingAddAlternate].tap()
         XCTAssertTrue(app.buttons[A11y.nestingRemoveAlternate].waitForExistence(timeout: 2))
         app.swipeUp()
         XCTAssertTrue(app.textFields[A11y.nestingAlternateCountry].waitForExistence(timeout: 2))
 
-        app.buttons[A11y.nestingRemoveAlternate].tap()
-        XCTAssertTrue(app.buttons[A11y.nestingAddAlternate].waitForExistence(timeout: 2))
+        let removeAlternate = app.buttons[A11y.nestingRemoveAlternate]
+        XCTAssertTrue(scrollUntilHittable(removeAlternate, direction: .up))
+        removeAlternate.tap()
+        XCTAssertFalse(removeAlternate.waitForExistence(timeout: 2))
+        XCTAssertTrue(scrollUntilExists(app.buttons[A11y.nestingAddAlternate], direction: .down))
     }
 
     @MainActor
@@ -125,8 +129,9 @@ nonisolated final class SampleUITests: XCTestCase {
 
     @MainActor
     private func dismissKeyboard() {
-        if app.buttons["Done"].exists {
-            app.buttons["Done"].tap()
+        let done = app.buttons["Done"]
+        if done.waitForExistence(timeout: 2) {
+            done.tap()
         }
     }
 
@@ -159,6 +164,22 @@ nonisolated final class SampleUITests: XCTestCase {
             }
         }
         return element.exists
+    }
+
+    @MainActor
+    private func scrollUntilHittable(
+        _ element: XCUIElement,
+        direction: SwipeDirection,
+        attempts: Int = 8
+    ) -> Bool {
+        for _ in 0..<attempts {
+            if element.isHittable { return true }
+            switch direction {
+            case .up: app.swipeUp()
+            case .down: app.swipeDown()
+            }
+        }
+        return element.isHittable
     }
 }
 

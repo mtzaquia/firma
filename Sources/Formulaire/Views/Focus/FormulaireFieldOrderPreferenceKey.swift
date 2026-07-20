@@ -22,15 +22,12 @@
 
 import SwiftUI
 
-struct ErrorText: View {
-    @Environment(\.formulaireStyle) private var style
-    let error: Error?
+struct FormulaireFieldOrderPreferenceKey: PreferenceKey {
+    static var defaultValue: [FormulairePath] = []
 
-    var body: some View {
-        if let error {
-            Text(error.localizedDescription)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(style.errorColor)
+    static func reduce(value: inout [FormulairePath], nextValue: () -> [FormulairePath]) {
+        for path in nextValue() where !value.contains(path) {
+            value.append(path)
         }
     }
 }

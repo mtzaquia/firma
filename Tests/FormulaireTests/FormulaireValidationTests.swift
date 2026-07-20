@@ -206,13 +206,12 @@ struct FormulaireFocusOrderTests {
     @Test("next and previous follow rendered order")
     func focusOrder() {
         let fields = [field("name"), field("email"), field("address", "street")]
-        typealias ViewType = FormulaireView<TestPerson, EmptyView>
 
-        #expect(ViewType.nextFocusId(in: fields, current: fields[0]) == fields[1])
-        #expect(ViewType.nextFocusId(in: fields, current: fields[2]) == nil)
-        #expect(ViewType.previousFocusId(in: fields, current: fields[2]) == fields[1])
-        #expect(ViewType.previousFocusId(in: fields, current: fields[0]) == nil)
-        #expect(ViewType.nextFocusId(in: fields, current: field("missing")) == nil)
+        #expect(FormulaireFocusOrder.next(in: fields, current: fields[0]) == fields[1])
+        #expect(FormulaireFocusOrder.next(in: fields, current: fields[2]) == nil)
+        #expect(FormulaireFocusOrder.previous(in: fields, current: fields[2]) == fields[1])
+        #expect(FormulaireFocusOrder.previous(in: fields, current: fields[0]) == nil)
+        #expect(FormulaireFocusOrder.next(in: fields, current: field("missing")) == nil)
     }
 
     @Test("actual list identity survives reordering")
@@ -224,10 +223,8 @@ struct FormulaireFocusOrderTests {
         let secondPath = root.appending(elementID: second.id).appending(field: "label")
         let before = [field("name"), firstPath, secondPath]
         let after = [field("name"), secondPath, firstPath]
-        typealias ViewType = FormulaireView<TestPerson, EmptyView>
-
-        #expect(ViewType.nextFocusId(in: before, current: before[0]) == firstPath)
-        #expect(ViewType.nextFocusId(in: after, current: after[0]) == secondPath)
+        #expect(FormulaireFocusOrder.next(in: before, current: before[0]) == firstPath)
+        #expect(FormulaireFocusOrder.next(in: after, current: after[0]) == secondPath)
     }
 }
 

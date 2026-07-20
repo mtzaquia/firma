@@ -73,25 +73,3 @@ private struct AnyLabelStyle: LabelStyle {
     }
 }
 #endif
-
-#Preview {
-    PreviewView()
-}
-
-struct PreviewView: View {
-    @State var text: String = ""
-    @FocusState var isFocused: FormulairePath?
-
-    var body: some View {
-        ScrollViewReader { proxy in
-            VStack {
-                TextField("Test", text: $text)
-                    .focused($isFocused, equals: .root)
-            }
-            .formulaireKeyboardToolbar(focus: $isFocused, renderedFields: [], proxy: proxy)
-        }
-        .onAppear {
-            isFocused = .root
-        }
-    }
-}

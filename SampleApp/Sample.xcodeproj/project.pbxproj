@@ -21,36 +21,36 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
-		BD91AE592E2FB5F200FF1805 /* Sample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		BD70AA102FE2A00000AA0001 /* SampleUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SampleUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		BD91AE592E2FB5F200FF1805 /* Sample.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Sample.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		BD91AE5B2E2FB5F200FF1805 /* Sample */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			path = Sample;
-			sourceTree = "<group>";
-		};
 		BD70AA112FE2A00000AA0001 /* SampleUITests */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = SampleUITests;
 			sourceTree = "<group>";
 		};
+		BD91AE5B2E2FB5F200FF1805 /* SampleApp */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = SampleApp;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		BD70AA122FE2A00000AA0001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		BD91AE562E2FB5F200FF1805 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 				BD91AE692E2FB62000FF1805 /* Formulaire in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		BD70AA122FE2A00000AA0001 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -60,7 +60,7 @@
 		BD91AE502E2FB5F200FF1805 = {
 			isa = PBXGroup;
 			children = (
-				BD91AE5B2E2FB5F200FF1805 /* Sample */,
+				BD91AE5B2E2FB5F200FF1805 /* SampleApp */,
 				BD70AA112FE2A00000AA0001 /* SampleUITests */,
 				BD91AE5A2E2FB5F200FF1805 /* Products */,
 			);
@@ -78,29 +78,6 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		BD91AE582E2FB5F200FF1805 /* Sample */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = BD91AE642E2FB5F300FF1805 /* Build configuration list for PBXNativeTarget "Sample" */;
-			buildPhases = (
-				BD91AE552E2FB5F200FF1805 /* Sources */,
-				BD91AE562E2FB5F200FF1805 /* Frameworks */,
-				BD91AE572E2FB5F200FF1805 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			fileSystemSynchronizedGroups = (
-				BD91AE5B2E2FB5F200FF1805 /* Sample */,
-			);
-			name = Sample;
-			packageProductDependencies = (
-				BD91AE682E2FB62000FF1805 /* Formulaire */,
-			);
-			productName = Sample;
-			productReference = BD91AE592E2FB5F200FF1805 /* Sample.app */;
-			productType = "com.apple.product-type.application";
-		};
 		BD70AA142FE2A00000AA0001 /* SampleUITests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = BD70AA152FE2A00000AA0001 /* Build configuration list for PBXNativeTarget "SampleUITests" */;
@@ -124,6 +101,29 @@
 			productReference = BD70AA102FE2A00000AA0001 /* SampleUITests.xctest */;
 			productType = "com.apple.product-type.bundle.ui-testing";
 		};
+		BD91AE582E2FB5F200FF1805 /* Sample */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BD91AE642E2FB5F300FF1805 /* Build configuration list for PBXNativeTarget "Sample" */;
+			buildPhases = (
+				BD91AE552E2FB5F200FF1805 /* Sources */,
+				BD91AE562E2FB5F200FF1805 /* Frameworks */,
+				BD91AE572E2FB5F200FF1805 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				BD91AE5B2E2FB5F200FF1805 /* SampleApp */,
+			);
+			name = Sample;
+			packageProductDependencies = (
+				BD91AE682E2FB62000FF1805 /* Formulaire */,
+			);
+			productName = Sample;
+			productReference = BD91AE592E2FB5F200FF1805 /* Sample.app */;
+			productType = "com.apple.product-type.application";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -134,12 +134,12 @@
 				LastSwiftUpdateCheck = 2600;
 				LastUpgradeCheck = 2600;
 				TargetAttributes = {
-					BD91AE582E2FB5F200FF1805 = {
-						CreatedOnToolsVersion = 26.0;
-					};
 					BD70AA142FE2A00000AA0001 = {
 						CreatedOnToolsVersion = 26.5;
 						TestTargetID = BD91AE582E2FB5F200FF1805;
+					};
+					BD91AE582E2FB5F200FF1805 = {
+						CreatedOnToolsVersion = 26.0;
 					};
 				};
 			};
@@ -167,14 +167,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		BD91AE572E2FB5F200FF1805 /* Resources */ = {
+		BD70AA172FE2A00000AA0001 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		BD70AA172FE2A00000AA0001 /* Resources */ = {
+		BD91AE572E2FB5F200FF1805 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -184,14 +184,14 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		BD91AE552E2FB5F200FF1805 /* Sources */ = {
+		BD70AA162FE2A00000AA0001 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		BD70AA162FE2A00000AA0001 /* Sources */ = {
+		BD91AE552E2FB5F200FF1805 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -209,6 +209,52 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		BD70AA192FE2A00000AA0001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = M43468ZAL5;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = eu.lelfe.Formulaire.SampleUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Sample;
+			};
+			name = Debug;
+		};
+		BD70AA1A2FE2A00000AA0001 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = M43468ZAL5;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = eu.lelfe.Formulaire.SampleUITests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = auto;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Sample;
+			};
+			name = Release;
+		};
 		BD91AE622E2FB5F300FF1805 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -415,55 +461,18 @@
 			};
 			name = Release;
 		};
-		BD70AA192FE2A00000AA0001 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = M43468ZAL5;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = eu.lelfe.Formulaire.SampleUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = auto;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 6.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = Sample;
-			};
-			name = Debug;
-		};
-		BD70AA1A2FE2A00000AA0001 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
-				DEVELOPMENT_TEAM = M43468ZAL5;
-				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
-				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = eu.lelfe.Formulaire.SampleUITests;
-				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = auto;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
-				SWIFT_APPROACHABLE_CONCURRENCY = YES;
-				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
-				SWIFT_EMIT_LOC_STRINGS = NO;
-				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
-				SWIFT_VERSION = 6.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
-				TEST_TARGET_NAME = Sample;
-			};
-			name = Release;
-		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		BD70AA152FE2A00000AA0001 /* Build configuration list for PBXNativeTarget "SampleUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				BD70AA192FE2A00000AA0001 /* Debug */,
+				BD70AA1A2FE2A00000AA0001 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		BD91AE542E2FB5F200FF1805 /* Build configuration list for PBXProject "Sample" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -478,15 +487,6 @@
 			buildConfigurations = (
 				BD91AE652E2FB5F300FF1805 /* Debug */,
 				BD91AE662E2FB5F300FF1805 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		BD70AA152FE2A00000AA0001 /* Build configuration list for PBXNativeTarget "SampleUITests" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				BD70AA192FE2A00000AA0001 /* Debug */,
-				BD70AA1A2FE2A00000AA0001 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
