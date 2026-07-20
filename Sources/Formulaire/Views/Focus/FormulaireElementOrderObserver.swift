@@ -20,38 +20,45 @@
 //  SOFTWARE.
 //
 
-import SwiftUI
+import Observation
 
-#if os(iOS)
-struct FormulaireKeyboardControls: View {
-    let focusCoordinator: FormulaireFocusCoordinator
+@MainActor
+final class FormulaireElementOrderObserver {
+    private var generation = 0
+    private var elementOrders: [FormulaireElementOrder] = []
+    private var onUpdate: (([FormulaireElementOrderSnapshot]) -> Void)?
 
-    var body: some View {
-        HStack(spacing: 12) {
-            Button("Previous", systemImage: "chevron.up") {
-                focusCoordinator.move(.previous)
-            }
-            .labelStyle(.iconOnly)
-            .disabled(!focusCoordinator.canMove(.previous))
-
-            Button("Next", systemImage: "chevron.down") {
-                focusCoordinator.move(.next)
-            }
-            .labelStyle(.iconOnly)
-            .disabled(!focusCoordinator.canMove(.next))
-
-            Spacer(minLength: 0)
-
-            Button("Done", systemImage: "checkmark") {
-                focusCoordinator.dismiss()
-            }
-            .labelStyle(.titleOnly)
-            .bold()
-        }
-        .contentShape(Rectangle())
-        .imageScale(.large)
-        .fontWeight(.medium)
+    func start(
+        observing elementOrders: [FormulaireElementOrder],
+        onUpdate: @escaping ([FormulaireElementOrderSnapshot]) -> Void
+    ) {
+        generation += 1
+        self.elementOrders = elementOrders
+        self.onUpdate = onUpdate
+        observe(generation: generation)
     }
 
+    func stop() {
+        generation += 1
+        elementOrders = []
+        onUpdate = nil
+    }
+
+    private func observe(generation: Int) {
+        guard generation == self.generation else { return }
+
+        let snapshots = withObservationTracking {
+            elementOrders.map {
+                FormulaireElementOrderSnapshot(
+                    listPath: $0.listPath,
+                    ids: $0.currentIDs()
+                )
+            }
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                self?.observe(generation: generation)
+            }
+        }
+        onUpdate?(snapshots)
+    }
 }
-#endif

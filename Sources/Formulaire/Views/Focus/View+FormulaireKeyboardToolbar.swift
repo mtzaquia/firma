@@ -26,29 +26,11 @@ extension View {
     @ViewBuilder
     func formulaireKeyboardToolbar(_ focusCoordinator: FormulaireFocusCoordinator) -> some View {
         #if os(iOS)
-        let info = Bundle.main.infoDictionary
-        if #available(iOS 26, *), (info?["UIDesignRequiresCompatibility"] as? Bool) != true {
-            safeAreaBar(edge: .bottom) {
-                ZStack {
-                    if focusCoordinator.focus.wrappedValue != nil {
-                        FormulaireKeyboardControls(
-                            focusCoordinator: focusCoordinator,
-                            iconOnlyDoneButton: true
-                        )
-                        .padding()
-                        .glassEffect(.regular, in: .capsule)
-                        .transition(.blurReplace)
-                    }
-                }
-                .padding([.horizontal, .bottom])
-                .animation(.snappy, value: focusCoordinator.focus.wrappedValue != nil)
-            }
-        } else {
-            toolbar {
-                ToolbarItemGroup(placement: .keyboard) {
+        toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                if focusCoordinator.focus.wrappedValue != nil {
                     FormulaireKeyboardControls(
-                        focusCoordinator: focusCoordinator,
-                        iconOnlyDoneButton: false
+                        focusCoordinator: focusCoordinator
                     )
                 }
             }

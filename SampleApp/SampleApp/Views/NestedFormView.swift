@@ -11,19 +11,18 @@ struct NestedFormView: View {
                 form.textField(for: \.username, label: "Username")
             }
 
-            form.content(for: \.primaryAddress) { errors in
-                Section {
-                    let address = form.scope(\.primaryAddress)
-                    address.textField(for: \.street, label: "Primary street")
-                    address.textField(for: \.city, label: "Primary city")
-                    let country = address.scope(\.country)
-                    country.textField(for: \.code, label: "Primary country code")
-                } header: {
-                    Text("Primary address")
-                } footer: {
-                    Text("\(errors.count) nested errors")
-                        .accessibilityIdentifier(SampleAppAccessibility.nestingErrorCount)
-                }
+            let primaryAddressErrors = form.errors(for: \.primaryAddress)
+            Section {
+                let address = form.scope(\.primaryAddress)
+                address.textField(for: \.street, label: "Primary street")
+                address.textField(for: \.city, label: "Primary city")
+                let country = address.scope(\.country)
+                country.textField(for: \.code, label: "Primary country code")
+            } header: {
+                Text("Primary address")
+            } footer: {
+                Text("\(primaryAddressErrors.count) nested errors")
+                    .accessibilityIdentifier(SampleAppAccessibility.nestingErrorCount)
             }
 
             Section("Alternate address") {

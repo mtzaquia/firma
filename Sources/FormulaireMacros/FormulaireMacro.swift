@@ -20,7 +20,6 @@
 //  SOFTWARE.
 //
 
-import Foundation
 import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxMacros

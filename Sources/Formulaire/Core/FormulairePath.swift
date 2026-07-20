@@ -20,8 +20,6 @@
 //  SOFTWARE.
 //
 
-import Foundation
-
 /// Stable identity for a field rendered or validated by Formulaire.
 ///
 /// Paths retain the actual `Hashable` identity of list elements. Unlike a path
@@ -48,8 +46,19 @@ public struct FormulairePath: Hashable, CustomStringConvertible {
         FormulairePath(components: components + [.element(AnyHashable(elementID))])
     }
 
-    func contains(_ other: FormulairePath) -> Bool {
+    func isAncestor(of other: FormulairePath) -> Bool {
         other.components.starts(with: components)
+    }
+
+    func elementID(directlyUnder ancestor: FormulairePath) -> AnyHashable? {
+        guard
+            ancestor.isAncestor(of: self),
+            components.indices.contains(ancestor.components.count),
+            case .element(let id) = components[ancestor.components.count]
+        else {
+            return nil
+        }
+        return id
     }
 
     /// A diagnostic representation suitable for logs and accessibility values.
@@ -68,4 +77,3 @@ public struct FormulairePath: Hashable, CustomStringConvertible {
         }
     }
 }
-

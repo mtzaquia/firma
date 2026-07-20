@@ -20,8 +20,6 @@
 //  SOFTWARE.
 //
 
-import Foundation
-@_exported import IdentifiedCollections
 import SwiftUI
 
 public struct FormulaireBuilder<F: Formulaire> {
@@ -34,9 +32,6 @@ public struct FormulaireBuilder<F: Formulaire> {
     /// Runs validation and returns an immutable snapshot of the relevant scope.
     @discardableResult
     public func validation() -> ValidationResult {
-        if path == .root {
-            return formulaire.runValidation()
-        }
         return validateFunction()
     }
 
@@ -46,18 +41,18 @@ public struct FormulaireBuilder<F: Formulaire> {
         validation().isValid
     }
 
-    /// Focuses a rendered, focusable field.
+    /// Requests focus for a field, scrolling lazy containers when necessary.
     ///
-    /// - Returns: `true` when the field is currently registered as focusable.
+    /// - Returns: `true` when the request was accepted. Focus assignment may be
+    ///   delayed until the destination mounts.
     @discardableResult
     public func focus<S>(on field: FieldPath<F, S>) -> Bool {
-        let fieldPath = path.appending(field: F.__fields[keyPath: field].label)
-        return focusCoordinator.focus(on: fieldPath)
+        focusCoordinator.focus(on: resolve(field).path)
     }
 
     /// Returns a native binding for a field.
     public func binding<V>(for field: FieldPath<F, V>) -> Binding<V> {
-        let concreteField = F.__fields[keyPath: field]
+        let concreteField = resolve(field).field
         return Binding(
             get: { concreteField.get(formulaire) },
             set: { concreteField.set(formulaire, $0) }
@@ -66,8 +61,18 @@ public struct FormulaireBuilder<F: Formulaire> {
 
     /// Returns the current error for a field, if one exists.
     public func error<V>(for field: FieldPath<F, V>) -> (any Error)? {
-        let concreteField = F.__fields[keyPath: field]
-        return validator.errors[path.appending(field: concreteField.label)]
+        validator.errors[resolve(field).path]
     }
 
+    /// Returns all current errors attached to a field or any of its descendants.
+    public func errors<V>(for field: FieldPath<F, V>) -> [FormulairePath: any Error] {
+        validator.result.errors(in: resolve(field).path)
+    }
+
+    func resolve<V>(
+        _ field: FieldPath<F, V>
+    ) -> (field: FormulaireField<F, V>, path: FormulairePath) {
+        let concreteField = F.__fields[keyPath: field]
+        return (concreteField, path.appending(field: concreteField.label))
+    }
 }

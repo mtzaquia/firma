@@ -67,7 +67,7 @@ final class SignUpForm {
 }
 ```
 
-Render it with the convenience container. A submit action runs only after a fresh, successful validation pass; an invalid submit focuses the first rendered field with an error.
+Render it with the convenience container. A submit action runs only after a fresh, successful validation pass; an invalid submit scrolls to and focuses the first focusable field with an error, including fields in lazy content.
 
 ```swift
 import SwiftUI

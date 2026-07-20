@@ -25,7 +25,7 @@ public struct ValidationResult {
     /// Errors keyed by their stable, structured field path.
     public let errors: [FormulairePath: any Error]
 
-    /// Error paths in the order validation produced them.
+    /// Error paths in the order supplied by the validation pass.
     ///
     /// Unlike dictionary iteration order, this is stable and suitable for
     /// deciding which invalid field should receive focus first.
@@ -34,13 +34,19 @@ public struct ValidationResult {
     /// `true` when the validation pass produced no errors.
     public var isValid: Bool { errors.isEmpty }
 
+    /// Creates a validation snapshot.
+    ///
+    /// Pass `errorPaths` whenever ordering is meaningful. When omitted, paths
+    /// follow the dictionary's iteration order and must not be used to choose a
+    /// first field.
     public init(
         errors: [FormulairePath: any Error] = [:],
         errorPaths: [FormulairePath]? = nil
     ) {
         self.errors = errors
+        var seen: Set<FormulairePath> = []
         self.errorPaths = (errorPaths ?? Array(errors.keys)).reduce(into: []) { result, path in
-            guard errors[path] != nil, !result.contains(path) else { return }
+            guard errors[path] != nil, seen.insert(path).inserted else { return }
             result.append(path)
         }
     }
@@ -52,6 +58,6 @@ public struct ValidationResult {
 
     /// Returns all errors attached to a path or any of its descendants.
     public func errors(in path: FormulairePath) -> [FormulairePath: any Error] {
-        errors.filter { path.contains($0.key) }
+        errors.filter { path.isAncestor(of: $0.key) }
     }
 }

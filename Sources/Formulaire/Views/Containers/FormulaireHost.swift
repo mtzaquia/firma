@@ -25,9 +25,7 @@ import SwiftUI
 struct FormulaireHost<F: Formulaire, Content: View>: View {
     @Binding var subject: F
     @FocusState private var focus: FormulairePath?
-    @State private var renderedFields: [FormulairePath] = []
-    @State private var focusOrder: [FormulairePath] = []
-    @State private var focusCandidates: [FormulairePath] = []
+    @State private var focusState = FormulaireFocusState()
 
     @ViewBuilder let content: (FormulaireBuilder<F>) -> Content
 
@@ -36,9 +34,7 @@ struct FormulaireHost<F: Formulaire, Content: View>: View {
         ScrollViewReader { proxy in
             let focusCoordinator = FormulaireFocusCoordinator(
                 focus: $focus,
-                renderedFields: $renderedFields,
-                focusOrder: $focusOrder,
-                pendingCandidates: $focusCandidates,
+                state: focusState,
                 scrollProxy: proxy
             )
 
@@ -52,7 +48,7 @@ struct FormulaireHost<F: Formulaire, Content: View>: View {
                 )
             )
             .onPreferenceChange(FormulaireFieldOrderPreferenceKey.self) { entries in
-                focusCoordinator.updateRenderedFields(
+                focusCoordinator.updateMountedFields(
                     FormulaireFieldOrderPreferenceKey.orderedPaths(from: entries)
                 )
             }

@@ -85,11 +85,7 @@ private struct FormulaireStepper<F: Formulaire, Label: View>: View {
                 Stepper(value: builder.$value, step: step, label: stepperLabel)
             }
         }
-        if let accessibilityIdentifier {
-            stepper.accessibilityIdentifier(accessibilityIdentifier)
-        } else {
-            stepper
-        }
+        stepper.formulaireAccessibility(identifier: accessibilityIdentifier)
     }
 
     private func stepperLabel() -> some View {

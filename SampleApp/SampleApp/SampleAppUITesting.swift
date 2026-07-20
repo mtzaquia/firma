@@ -43,6 +43,11 @@ enum SampleAppUITesting {
         .first(where: { $0.hasPrefix("--scenario=") })
         .flatMap { SampleScenario(rawValue: String($0.dropFirst("--scenario=".count))) }
 
+    static let initialAttendeeCount: Int = ProcessInfo.processInfo.arguments
+        .first(where: { $0.hasPrefix("--attendees=") })
+        .flatMap { Int($0.dropFirst("--attendees=".count)) }
+        ?? 0
+
     @MainActor
     static func configure() {
         guard isEnabled else { return }

@@ -71,21 +71,13 @@ private struct FormulaireToggle<F: Formulaire, Label: View>: View {
         }
     }
 
-    @ViewBuilder
     private var toggle: some View {
-        let toggle = Toggle(isOn: builder.$value) {
+        Toggle(isOn: builder.$value) {
             label.foregroundStyle(builder.error == nil ? Color.primary : style.errorColor)
         }
-        if let accessibilityLabel, let accessibilityIdentifier {
-            toggle
-                .accessibilityLabel(accessibilityLabel)
-                .accessibilityIdentifier(accessibilityIdentifier)
-        } else if let accessibilityLabel {
-            toggle.accessibilityLabel(accessibilityLabel)
-        } else if let accessibilityIdentifier {
-            toggle.accessibilityIdentifier(accessibilityIdentifier)
-        } else {
-            toggle
-        }
+        .formulaireAccessibility(
+            label: accessibilityLabel,
+            identifier: accessibilityIdentifier
+        )
     }
 }

@@ -22,36 +22,20 @@
 
 import SwiftUI
 
-#if os(iOS)
-struct FormulaireKeyboardControls: View {
-    let focusCoordinator: FormulaireFocusCoordinator
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Button("Previous", systemImage: "chevron.up") {
-                focusCoordinator.move(.previous)
-            }
-            .labelStyle(.iconOnly)
-            .disabled(!focusCoordinator.canMove(.previous))
-
-            Button("Next", systemImage: "chevron.down") {
-                focusCoordinator.move(.next)
-            }
-            .labelStyle(.iconOnly)
-            .disabled(!focusCoordinator.canMove(.next))
-
-            Spacer(minLength: 0)
-
-            Button("Done", systemImage: "checkmark") {
-                focusCoordinator.dismiss()
-            }
-            .labelStyle(.titleOnly)
-            .bold()
+extension View {
+    @ViewBuilder
+    func formulaireAccessibility(
+        label: Text? = nil,
+        identifier: String? = nil
+    ) -> some View {
+        if let label, let identifier {
+            accessibilityLabel(label).accessibilityIdentifier(identifier)
+        } else if let label {
+            accessibilityLabel(label)
+        } else if let identifier {
+            accessibilityIdentifier(identifier)
+        } else {
+            self
         }
-        .contentShape(Rectangle())
-        .imageScale(.large)
-        .fontWeight(.medium)
     }
-
 }
-#endif

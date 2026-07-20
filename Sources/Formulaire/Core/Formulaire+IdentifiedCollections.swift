@@ -20,38 +20,6 @@
 //  SOFTWARE.
 //
 
-import SwiftUI
-
-#if os(iOS)
-struct FormulaireKeyboardControls: View {
-    let focusCoordinator: FormulaireFocusCoordinator
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Button("Previous", systemImage: "chevron.up") {
-                focusCoordinator.move(.previous)
-            }
-            .labelStyle(.iconOnly)
-            .disabled(!focusCoordinator.canMove(.previous))
-
-            Button("Next", systemImage: "chevron.down") {
-                focusCoordinator.move(.next)
-            }
-            .labelStyle(.iconOnly)
-            .disabled(!focusCoordinator.canMove(.next))
-
-            Spacer(minLength: 0)
-
-            Button("Done", systemImage: "checkmark") {
-                focusCoordinator.dismiss()
-            }
-            .labelStyle(.titleOnly)
-            .bold()
-        }
-        .contentShape(Rectangle())
-        .imageScale(.large)
-        .fontWeight(.medium)
-    }
-
-}
-#endif
+// Formulaire's public list APIs use IdentifiedArrayOf. Re-exporting the module is
+// an intentional source-compatibility convenience for existing clients.
+@_exported import IdentifiedCollections

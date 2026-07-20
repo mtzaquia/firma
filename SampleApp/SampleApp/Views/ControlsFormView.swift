@@ -4,6 +4,7 @@ import SwiftUI
 struct ControlsFormView: View {
     @State private var model = ControlsFormModel()
     @State private var status = "Not validated"
+    @State private var asyncSubmissionCount = 0
 
     var body: some View {
         FormulaireContent(editing: $model) { form in
@@ -94,8 +95,10 @@ struct ControlsFormView: View {
                             .accessibilityIdentifier(SampleAppAccessibility.controlsSubmit)
 
                             form.asyncSubmitButton(action: {
-                                await Task.yield()
-                                status = "Submitted asynchronously"
+                                try? await Task.sleep(for: .seconds(1))
+                                guard !Task.isCancelled else { return }
+                                asyncSubmissionCount += 1
+                                status = "Submitted asynchronously (\(asyncSubmissionCount))"
                             }) {
                                 Label("Submit asynchronously", systemImage: "clock.arrow.circlepath")
                             }

@@ -82,6 +82,15 @@ private final class CollidingList {
     func validate() { validate(\.items) }
 }
 
+@Observable
+private final class TestIDStore {
+    var ids = ["first", "second"]
+    var phones: IdentifiedArrayOf<TestPhone> = [
+        TestPhone(id: "first"),
+        TestPhone(id: "second"),
+    ]
+}
+
 @Suite("Validation")
 struct FormulaireValidationTests {
     @Test("runValidation owns clearing and returns a snapshot")
@@ -193,25 +202,126 @@ struct FormulaireValidationTests {
 
     @Test("field metadata reads and writes")
     func fieldMetadata() {
-        var person = TestPerson()
+        let person = TestPerson()
         let metadata = TestPerson.__fields.name
-        #expect(person[field: metadata] == "")
-        person[field: metadata] = "Morgan"
+        #expect(metadata.get(person) == "")
+        metadata.set(person, "Morgan")
         #expect(person.name == "Morgan")
+    }
+
+    @Test("validation snapshots preserve only supplied, unique error paths")
+    func validationResultOrdering() {
+        let first = field("first")
+        let second = field("second")
+        let missing = field("missing")
+        let result = ValidationResult(
+            errors: [first: "First", second: "Second"],
+            errorPaths: [second, second, missing, first]
+        )
+
+        #expect(result.errorPaths == [second, first])
+    }
+}
+
+@Suite("Scoped bindings")
+struct FormulaireScopedBindingTests {
+    @Test("a retained child binding cannot recreate a removed value")
+    func removedOptionalRejectsStaleWrites() {
+        var child: Int? = 1
+        let binding = FormulaireRetainedBinding.make(
+            initialValue: 1,
+            currentValue: { child },
+            setIfPresent: { child = $0 }
+        )
+
+        child = nil
+        binding.wrappedValue = 2
+
+        #expect(child == nil)
+        #expect(binding.wrappedValue == 1)
     }
 }
 
 @Suite("Focus order")
 struct FormulaireFocusOrderTests {
+    @Test("identified element order observation survives reused views")
+    func identifiedElementObservation() async {
+        let store = TestIDStore()
+        let observer = FormulaireElementOrderObserver()
+        var receivedIDs: [AnyHashable] = []
+        observer.start(
+            observing: [
+                FormulaireElementOrder(
+                    listPath: field("items"),
+                    currentIDs: { store.ids.map { AnyHashable($0) } }
+                )
+            ]
+        ) { snapshots in
+            receivedIDs = snapshots.first?.ids ?? []
+        }
+
+        store.ids = ["second", "first"]
+        for _ in 0..<10 where receivedIDs != store.ids.map({ AnyHashable($0) }) {
+            await Task.yield()
+        }
+
+        #expect(receivedIDs == store.ids.map { AnyHashable($0) })
+        observer.stop()
+
+        let collectionObserver = FormulaireElementOrderObserver()
+        collectionObserver.start(
+            observing: [
+                FormulaireElementOrder(
+                    listPath: field("phones"),
+                    currentIDs: { store.phones.map { AnyHashable($0.id) } }
+                )
+            ]
+        ) { snapshots in
+            receivedIDs = snapshots.first?.ids ?? []
+        }
+
+        store.phones.move(fromOffsets: IndexSet(integer: 0), toOffset: 2)
+        let expected = [AnyHashable("second"), AnyHashable("first")]
+        for _ in 0..<10 where receivedIDs != expected {
+            await Task.yield()
+        }
+
+        #expect(receivedIDs == expected)
+        collectionObserver.stop()
+    }
+
     @Test("next and previous follow rendered order")
     func focusOrder() {
         let fields = [field("name"), field("email"), field("address", "street")]
 
-        #expect(FormulaireFocusOrder.next(in: fields, current: fields[0]) == fields[1])
-        #expect(FormulaireFocusOrder.next(in: fields, current: fields[2]) == nil)
-        #expect(FormulaireFocusOrder.previous(in: fields, current: fields[2]) == fields[1])
-        #expect(FormulaireFocusOrder.previous(in: fields, current: fields[0]) == nil)
-        #expect(FormulaireFocusOrder.next(in: fields, current: field("missing")) == nil)
+        #expect(
+            FormulaireFocusOrder.candidates(
+                in: fields,
+                current: fields[0],
+                direction: .next
+            ) == [fields[1], fields[2]]
+        )
+        #expect(
+            FormulaireFocusOrder.candidates(
+                in: fields,
+                current: fields[2],
+                direction: .previous
+            ) == [fields[1], fields[0]]
+        )
+        #expect(
+            FormulaireFocusOrder.candidates(
+                in: fields,
+                current: fields[2],
+                direction: .next
+            ).isEmpty
+        )
+        #expect(
+            FormulaireFocusOrder.candidates(
+                in: fields,
+                current: field("missing"),
+                direction: .next
+            ).isEmpty
+        )
     }
 
     @Test("actual list identity survives reordering")
@@ -223,8 +333,14 @@ struct FormulaireFocusOrderTests {
         let secondPath = root.appending(elementID: second.id).appending(field: "label")
         let before = [field("name"), firstPath, secondPath]
         let after = [field("name"), secondPath, firstPath]
-        #expect(FormulaireFocusOrder.next(in: before, current: before[0]) == firstPath)
-        #expect(FormulaireFocusOrder.next(in: after, current: after[0]) == secondPath)
+        #expect(
+            FormulaireFocusOrder.candidates(in: before, current: before[0], direction: .next).first
+                == firstPath
+        )
+        #expect(
+            FormulaireFocusOrder.candidates(in: after, current: after[0], direction: .next).first
+                == secondPath
+        )
     }
 
     @Test("lazy snapshots preserve and extend logical order")
@@ -245,8 +361,14 @@ struct FormulaireFocusOrderTests {
         )
 
         #expect(order == [event, first, second, third, fourth])
-        #expect(FormulaireFocusOrder.next(in: order, current: third) == fourth)
-        #expect(FormulaireFocusOrder.previous(in: order, current: third) == second)
+        #expect(
+            FormulaireFocusOrder.candidates(in: order, current: third, direction: .next).first
+                == fourth
+        )
+        #expect(
+            FormulaireFocusOrder.candidates(in: order, current: third, direction: .previous).first
+                == second
+        )
     }
 
     @Test("visible reordering updates known fields in place")
@@ -263,6 +385,30 @@ struct FormulaireFocusOrderTests {
         )
 
         #expect(order == [event, second, first, third, submit])
+    }
+
+    @Test("identified element order follows model reordering and deletion")
+    func identifiedElementOrder() {
+        let event = field("event")
+        let attendees = field("attendees")
+        let first = attendees.appending(elementID: "first").appending(field: "name")
+        let second = attendees.appending(elementID: "second").appending(field: "name")
+        let third = attendees.appending(elementID: "third").appending(field: "name")
+        let submit = field("submit")
+
+        var order = FormulaireFocusOrder.reconcilingElements(
+            in: [event, first, second, third, submit],
+            under: attendees,
+            ids: ["second", "first", "third"].map(AnyHashable.init)
+        )
+        #expect(order == [event, second, first, third, submit])
+
+        order = FormulaireFocusOrder.reconcilingElements(
+            in: order,
+            under: attendees,
+            ids: ["second", "third"].map(AnyHashable.init)
+        )
+        #expect(order == [event, second, third, submit])
     }
 
     @Test("field order follows visual position, not preference reduction order")

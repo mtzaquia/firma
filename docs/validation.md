@@ -17,7 +17,7 @@ Outside a view, call `model.runValidation()`. Calling the rule-producing `model.
 
 `ValidationResult.errors` is keyed by `FormulairePath`. Paths retain every nested field and the actual `Hashable` IDs of list elements, so unequal IDs cannot collide even if their hash values do.
 
-`ValidationResult.errorPaths` preserves the order in which validation produced those errors. Identified collections follow their current model order; dictionary iteration order is never used to choose the first invalid field.
+`ValidationResult.errorPaths` preserves the order in which validation produced those errors. Identified collections follow their current model order; Formulaire's validation engine never uses dictionary iteration order to choose the first invalid field. Callers constructing `ValidationResult` directly should supply `errorPaths` whenever order matters.
 
 ## Add field errors
 
@@ -49,6 +49,6 @@ Parent-level errors and descendant errors are distinct. For example, an empty at
 
 ## Query errors
 
-In rendering code, `form.error(for:)` returns the exact field error. `form.content(for:)` supplies either the errors in a nested subtree or the top-level error for an identified list.
+In rendering code, `form.error(for:)` returns the exact field error and `form.errors(for:)` returns every error in that field's nested subtree.
 
 Validation snapshots do not update after creation. Run another pass to obtain a new result after editing the model.

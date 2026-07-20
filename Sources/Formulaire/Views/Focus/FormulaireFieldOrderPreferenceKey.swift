@@ -34,10 +34,15 @@ struct FormulaireFieldOrderPreferenceKey: PreferenceKey {
         value: inout [FormulaireFieldOrderEntry],
         nextValue: () -> [FormulaireFieldOrderEntry]
     ) {
+        var indices: [FormulairePath: Int] = [:]
+        for index in value.indices {
+            indices[value[index].path] = index
+        }
         for entry in nextValue() {
-            if let index = value.firstIndex(where: { $0.path == entry.path }) {
+            if let index = indices[entry.path] {
                 value[index] = entry
             } else {
+                indices[entry.path] = value.endIndex
                 value.append(entry)
             }
         }

@@ -26,7 +26,7 @@ public extension FormulaireBuilder {
     /// Builds a submit button that validates before running a synchronous action.
     func submitButton(_ label: String, onSubmit: @escaping () -> Void) -> some View {
         submitButton(onSubmit: onSubmit) {
-            Text(label)
+            Text(verbatim: label)
         }
     }
 
@@ -36,12 +36,7 @@ public extension FormulaireBuilder {
         @ViewBuilder label: () -> Label
     ) -> some View {
         Button {
-            let result = validation()
-            guard result.isValid else {
-                focusCoordinator.focusFirstError(in: result)
-                return
-            }
-            onSubmit()
+            performValidated(onSubmit)
         } label: {
             label()
         }
@@ -63,16 +58,27 @@ public extension FormulaireBuilder {
         action: @escaping @MainActor () async -> Void,
         @ViewBuilder label: () -> Label
     ) -> some View {
-        Button {
-            let result = validation()
-            guard result.isValid else {
-                focusCoordinator.focusFirstError(in: result)
-                return
-            }
-            Task { await action() }
-        } label: {
-            label()
+        FormulaireAsyncSubmitButton(
+            builder: self,
+            action: action,
+            label: label()
+        )
+    }
+
+}
+
+extension FormulaireBuilder {
+    func prepareForSubmission() -> Bool {
+        let result = validation()
+        guard result.isValid else {
+            focusCoordinator.focusFirstError(in: result)
+            return false
         }
-        .bold()
+        return true
+    }
+
+    private func performValidated(_ action: () -> Void) {
+        guard prepareForSubmission() else { return }
+        action()
     }
 }

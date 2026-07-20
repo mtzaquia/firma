@@ -82,15 +82,9 @@ private struct FormulaireTextField<F: Formulaire, Label: View>: View {
         }
     }
 
-    @ViewBuilder
     private var textField: some View {
-        if let accessibilityIdentifier {
-            TextField(text: builder.$value, prompt: prompt) { label }
-                .focused(builder.$focus, equals: builder.id)
-                .accessibilityIdentifier(accessibilityIdentifier)
-        } else {
-            TextField(text: builder.$value, prompt: prompt) { label }
-                .focused(builder.$focus, equals: builder.id)
-        }
+        TextField(text: builder.$value, prompt: prompt) { label }
+            .focused(builder.$focus, equals: builder.id)
+            .formulaireAccessibility(identifier: accessibilityIdentifier)
     }
 }

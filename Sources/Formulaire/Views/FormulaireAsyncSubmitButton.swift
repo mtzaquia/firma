@@ -22,36 +22,33 @@
 
 import SwiftUI
 
-#if os(iOS)
-struct FormulaireKeyboardControls: View {
-    let focusCoordinator: FormulaireFocusCoordinator
+struct FormulaireAsyncSubmitButton<F: Formulaire, Label: View>: View {
+    let builder: FormulaireBuilder<F>
+    let action: @MainActor () async -> Void
+    let label: Label
+
+    @State private var submissionTask: Task<Void, Never>?
+    @State private var submissionGeneration = 0
 
     var body: some View {
-        HStack(spacing: 12) {
-            Button("Previous", systemImage: "chevron.up") {
-                focusCoordinator.move(.previous)
+        Button {
+            guard submissionTask == nil, builder.prepareForSubmission() else { return }
+            submissionGeneration += 1
+            let generation = submissionGeneration
+            submissionTask = Task { @MainActor in
+                await action()
+                guard submissionGeneration == generation else { return }
+                submissionTask = nil
             }
-            .labelStyle(.iconOnly)
-            .disabled(!focusCoordinator.canMove(.previous))
-
-            Button("Next", systemImage: "chevron.down") {
-                focusCoordinator.move(.next)
-            }
-            .labelStyle(.iconOnly)
-            .disabled(!focusCoordinator.canMove(.next))
-
-            Spacer(minLength: 0)
-
-            Button("Done", systemImage: "checkmark") {
-                focusCoordinator.dismiss()
-            }
-            .labelStyle(.titleOnly)
-            .bold()
+        } label: {
+            label
         }
-        .contentShape(Rectangle())
-        .imageScale(.large)
-        .fontWeight(.medium)
+        .bold()
+        .disabled(submissionTask != nil)
+        .onDisappear {
+            submissionGeneration += 1
+            submissionTask?.cancel()
+            submissionTask = nil
+        }
     }
-
 }
-#endif

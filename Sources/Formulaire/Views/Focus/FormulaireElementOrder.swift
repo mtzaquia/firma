@@ -20,38 +20,12 @@
 //  SOFTWARE.
 //
 
-import SwiftUI
-
-#if os(iOS)
-struct FormulaireKeyboardControls: View {
-    let focusCoordinator: FormulaireFocusCoordinator
-
-    var body: some View {
-        HStack(spacing: 12) {
-            Button("Previous", systemImage: "chevron.up") {
-                focusCoordinator.move(.previous)
-            }
-            .labelStyle(.iconOnly)
-            .disabled(!focusCoordinator.canMove(.previous))
-
-            Button("Next", systemImage: "chevron.down") {
-                focusCoordinator.move(.next)
-            }
-            .labelStyle(.iconOnly)
-            .disabled(!focusCoordinator.canMove(.next))
-
-            Spacer(minLength: 0)
-
-            Button("Done", systemImage: "checkmark") {
-                focusCoordinator.dismiss()
-            }
-            .labelStyle(.titleOnly)
-            .bold()
-        }
-        .contentShape(Rectangle())
-        .imageScale(.large)
-        .fontWeight(.medium)
-    }
-
+struct FormulaireElementOrder {
+    let listPath: FormulairePath
+    let currentIDs: () -> [AnyHashable]
 }
-#endif
+
+struct FormulaireElementOrderSnapshot: Equatable {
+    let listPath: FormulairePath
+    let ids: [AnyHashable]
+}

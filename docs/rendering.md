@@ -37,9 +37,9 @@ Mark a control focusable only when it registers the supplied focus binding. Focu
 
 ## Programmatic focus
 
-`form.focus(on:)` scrolls to a currently rendered focusable field and returns `true`. It returns `false` for hidden, non-focusable, or removed fields.
+`form.focus(on:)` accepts a focus request immediately, scrolls lazy containers when necessary, and assigns focus after the destination mounts. Its Boolean result reports that the request was accepted; the field may still disappear before assignment.
 
-On iOS, the keyboard toolbar moves to the previous or next rendered focusable field and can dismiss focus. An invalid submit follows validation order, scrolls lazy containers until the first focusable invalid field mounts, and then assigns focus. This keeps long identified lists aligned with model order even when only a subset of rows is currently rendered.
+On iOS, the keyboard toolbar moves through the retained visual order and can dismiss focus. Navigation and invalid submission use the same candidate-based scroll, mount, and focus state machine. Deleted candidates are pruned and skipped, while newly mounted rows extend the order. This keeps long identified lists aligned with their visual order even when only a subset of rows is currently mounted.
 
 ## Submission
 
@@ -53,7 +53,7 @@ form.asyncSubmitButton(action: {
 }
 ```
 
-The async action runs in a task on the main actor. The app remains responsible for progress UI, cancellation policy, and preventing duplicate network submissions when those behaviors are required.
+The async action runs in a task on the main actor. Its button is disabled while that task is active, duplicate taps are ignored, and the task is cancelled when the button disappears. The action should still cooperate with task cancellation, and apps remain responsible for any richer progress or retry UI.
 
 ## Styling
 

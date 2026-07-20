@@ -34,7 +34,7 @@ public struct ControlBuilder<F: Formulaire, V> {
     @FocusState.Binding public var focus: FormulairePath?
 
     /// A property holding the error for this field, if any exist.
-    public var error: Error?
+    public var error: (any Error)?
 
     /// A flag indicating whether this field is currently focused, for convenience.
     public var isFocused: Bool {

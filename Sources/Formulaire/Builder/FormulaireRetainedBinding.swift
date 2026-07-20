@@ -20,27 +20,20 @@
 //  SOFTWARE.
 //
 
-import IdentifiedCollections
 import SwiftUI
 
-public extension FormulaireBuilder {
-    /// Displays custom content with all errors belonging to a nested subject.
-    func content<N: Formulaire, Content: View>(
-        for field: FieldPath<F, N>,
-        @ViewBuilder content: (_ errors: [FormulairePath: any Error]) -> Content
-    ) -> some View {
-        let concreteField = F.__fields[keyPath: field]
-        let fieldPath = path.appending(field: concreteField.label)
-        return content(validator.result.errors(in: fieldPath))
-    }
-
-    /// Displays custom content with the top-level error for an identified list.
-    func content<N: Formulaire & Identifiable, Content: View>(
-        for field: FieldPath<F, IdentifiedArrayOf<N>>,
-        @ViewBuilder content: (_ error: (any Error)?) -> Content
-    ) -> some View {
-        let concreteField = F.__fields[keyPath: field]
-        let fieldPath = path.appending(field: concreteField.label)
-        return content(validator.errors[fieldPath])
+enum FormulaireRetainedBinding {
+    static func make<Value>(
+        initialValue: Value,
+        currentValue: @escaping () -> Value?,
+        setIfPresent: @escaping (Value) -> Void
+    ) -> Binding<Value> {
+        Binding(
+            get: { currentValue() ?? initialValue },
+            set: { newValue in
+                guard currentValue() != nil else { return }
+                setIfPresent(newValue)
+            }
+        )
     }
 }

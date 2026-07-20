@@ -20,7 +20,7 @@
 //  SOFTWARE.
 //
 
-import Foundation
+import Observation
 
 /// Observable validation state owned by a ``Formulaire`` subject.
 ///
@@ -32,104 +32,87 @@ public final class Validator {
     @ObservationIgnored
     private var context: FormulairePath = .root
 
-    @ObservationIgnored
-    private var errorPaths: [FormulairePath] = []
+    private var state = FormulaireValidationState()
 
-    public private(set) var errors: [FormulairePath: any Error] = [:]
+    public var errors: [FormulairePath: any Error] {
+        state.errors
+    }
 
     /// The current validation snapshot.
     public var result: ValidationResult {
-        ValidationResult(errors: errors, errorPaths: errorPaths)
+        state.result
     }
 
     /// **[Internal use]** Formulaire models receive an instance from the macro.
     public init() {}
 
     func addError(_ error: any Error, for field: String) {
-        let path = context.appending(field: field)
-        if errors[path] == nil {
-            errorPaths.append(path)
-        }
-        errors[path] = error
+        state.add(error, at: context.appending(field: field))
     }
 
-    func clearAllErrors(in path: FormulairePath? = nil, includingPath: Bool = true) {
-        guard let path, path != .root else {
-            errors.removeAll()
-            errorPaths.removeAll()
-            return
-        }
-
-        errors = errors.filter { key, _ in
-            if key == path {
-                return !includingPath
-            }
-            return !path.contains(key)
-        }
-        errorPaths.removeAll { errors[$0] == nil }
+    func removeErrors(in path: FormulairePath, includingPath: Bool = true) {
+        state.removeErrors(in: path, includingPath: includingPath)
     }
 
     func evaluate<F: Formulaire>(_ subject: F, at path: FormulairePath) -> ValidationResult {
-        context = path
-        errors.removeAll()
-        errorPaths.removeAll()
-        subject.validate()
+        state.reset()
+        withContext(path) {
+            subject.validate()
+        }
         return result
     }
 
     func replaceValidation<F: Formulaire>(of subject: F, at path: FormulairePath) -> ValidationResult {
-        clearAllErrors(in: path, includingPath: false)
+        removeErrors(in: path, includingPath: false)
 
         let childResult: ValidationResult
         if subject.__validator === self {
-            let preserved = result
+            let preserved = state
             childResult = evaluate(subject, at: path)
-            errors = preserved.errors
-            errorPaths = preserved.errorPaths
-            merge(childResult)
+            state = preserved
         } else {
             childResult = subject.__validator.evaluate(subject, at: path)
-            merge(childResult)
         }
+        state.merge(childResult)
 
-        let scopedErrors = errors.filter { path.contains($0.key) }
-        return ValidationResult(
-            errors: scopedErrors,
-            errorPaths: errorPaths.filter { scopedErrors[$0] != nil }
-        )
+        return state.result(in: path)
     }
 
     func validateNested<F: Formulaire>(_ nested: F, field: String) {
         let path = context.appending(field: field)
-        clearAllErrors(in: path, includingPath: false)
-        let nestedResult = nested.__validator.evaluate(nested, at: path)
-        merge(nestedResult)
+        validateNested([(nested, path)], in: path)
     }
 
     func validateNested<F: Formulaire>(_ nested: F?, field: String) {
         let path = context.appending(field: field)
-        clearAllErrors(in: path, includingPath: false)
-        guard let nested else { return }
-
-        let nestedResult = nested.__validator.evaluate(nested, at: path)
-        merge(nestedResult)
+        validateNested(nested.map { [($0, path)] } ?? [], in: path)
     }
 
     func validateNested<F: Formulaire>(_ nested: IdentifiedArrayOf<F>, field: String) {
         let listPath = context.appending(field: field)
-        clearAllErrors(in: listPath, includingPath: false)
+        validateNested(
+            nested.map { ($0, listPath.appending(elementID: $0.id)) },
+            in: listPath
+        )
+    }
 
-        for value in nested {
-            let elementPath = listPath.appending(elementID: value.id)
-            let nestedResult = value.__validator.evaluate(value, at: elementPath)
-            merge(nestedResult)
+    private func validateNested<F: Formulaire>(
+        _ subjects: [(F, FormulairePath)],
+        in containerPath: FormulairePath
+    ) {
+        removeErrors(in: containerPath, includingPath: false)
+        for (subject, subjectPath) in subjects {
+            state.merge(subject.__validator.evaluate(subject, at: subjectPath))
         }
     }
 
-    private func merge(_ result: ValidationResult) {
-        for path in result.errorPaths where !errorPaths.contains(path) {
-            errorPaths.append(path)
-        }
-        errors.merge(result.errors, uniquingKeysWith: { _, new in new })
+    private func withContext<T>(
+        _ path: FormulairePath,
+        perform operation: () throws -> T
+    ) rethrows -> T {
+        let previousContext = context
+        context = path
+        defer { context = previousContext }
+        return try operation()
     }
 }

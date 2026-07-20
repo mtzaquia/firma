@@ -32,31 +32,36 @@ public extension FormulaireBuilder {
         _ field: FieldPath<F, IdentifiedArrayOf<S>>,
         id: S.ID
     ) -> FormulaireBuilder<S>? {
-        let concreteField = F.__fields[keyPath: field]
-        guard let initialValue = concreteField.get(formulaire)[id: id] else {
+        let resolvedField = resolve(field)
+        let concreteField = resolvedField.field
+        let values = concreteField.get(formulaire)
+        focusCoordinator.registerElementOrder(
+            FormulaireElementOrder(
+                listPath: resolvedField.path,
+                currentIDs: {
+                    concreteField.get(formulaire).map { AnyHashable($0.id) }
+                }
+            )
+        )
+        guard let initialValue = values[id: id] else {
             return nil
         }
 
-        let childPath = path
-            .appending(field: concreteField.label)
+        let childPath = resolvedField.path
             .appending(elementID: id)
 
-        return FormulaireBuilder<S>(
-            formulaire: Binding(
-                get: {
-                    concreteField.get(formulaire)[id: id] ?? initialValue
-                },
-                set: { newValue in
+        return makeScopedBuilder(
+            binding: FormulaireRetainedBinding.make(
+                initialValue: initialValue,
+                currentValue: { concreteField.get(formulaire)[id: id] },
+                setIfPresent: { newValue in
                     var list = concreteField.get(formulaire)
-                    guard list[id: id] != nil else { return }
                     list[id: id] = newValue
                     concreteField.set(formulaire, list)
                 }
             ),
-            focusCoordinator: focusCoordinator,
-            validator: validator,
             path: childPath,
-            validateFunction: {
+            validation: {
                 guard let child = concreteField.get(formulaire)[id: id] else {
                     return ValidationResult()
                 }
@@ -65,30 +70,19 @@ public extension FormulaireBuilder {
         )
     }
 
-    /// Scopes to a child from an identified list.
-    ///
-    /// Prefer ``scope(_:id:)`` when the caller can naturally work with an ID.
-    func scope<S: Formulaire & Identifiable>(
-        _ field: FieldPath<F, IdentifiedArrayOf<S>>,
-        for child: S
-    ) -> FormulaireBuilder<S>? {
-        scope(field, id: child.id)
-    }
-
     /// Scopes to a nested Formulaire subject.
     func scope<S: Formulaire>(_ field: FieldPath<F, S>) -> FormulaireBuilder<S> {
-        let concreteField = F.__fields[keyPath: field]
-        let childPath = path.appending(field: concreteField.label)
+        let resolvedField = resolve(field)
+        let concreteField = resolvedField.field
+        let childPath = resolvedField.path
 
-        return FormulaireBuilder<S>(
-            formulaire: Binding(
+        return makeScopedBuilder(
+            binding: Binding(
                 get: { concreteField.get(formulaire) },
                 set: { concreteField.set(formulaire, $0) }
             ),
-            focusCoordinator: focusCoordinator,
-            validator: validator,
             path: childPath,
-            validateFunction: {
+            validation: {
                 validator.replaceValidation(of: concreteField.get(formulaire), at: childPath)
             }
         )
@@ -98,29 +92,42 @@ public extension FormulaireBuilder {
     func scope<S: Formulaire>(
         _ field: FieldPath<F, Optional<S>>
     ) -> FormulaireBuilder<S>? {
-        let concreteField = F.__fields[keyPath: field]
+        let resolvedField = resolve(field)
+        let concreteField = resolvedField.field
         guard let initialValue = concreteField.get(formulaire) else {
+            focusCoordinator.removeElementOrders(in: resolvedField.path)
             return nil
         }
 
-        let childPath = path.appending(field: concreteField.label)
-        return FormulaireBuilder<S>(
-            formulaire: Binding(
-                get: {
-                    concreteField.get(formulaire) ?? initialValue
-                },
-                set: { concreteField.set(formulaire, $0) }
+        let childPath = resolvedField.path
+        return makeScopedBuilder(
+            binding: FormulaireRetainedBinding.make(
+                initialValue: initialValue,
+                currentValue: { concreteField.get(formulaire) },
+                setIfPresent: { concreteField.set(formulaire, $0) }
             ),
-            focusCoordinator: focusCoordinator,
-            validator: validator,
             path: childPath,
-            validateFunction: {
+            validation: {
                 guard let child = concreteField.get(formulaire) else {
-                    validator.clearAllErrors(in: childPath)
+                    validator.removeErrors(in: childPath)
                     return ValidationResult()
                 }
                 return validator.replaceValidation(of: child, at: childPath)
             }
+        )
+    }
+
+    private func makeScopedBuilder<S: Formulaire>(
+        binding: Binding<S>,
+        path: FormulairePath,
+        validation: @escaping () -> ValidationResult
+    ) -> FormulaireBuilder<S> {
+        FormulaireBuilder<S>(
+            formulaire: binding,
+            focusCoordinator: focusCoordinator,
+            validator: validator,
+            path: path,
+            validateFunction: validation
         )
     }
 }

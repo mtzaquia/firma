@@ -28,8 +28,9 @@ nonisolated final class SampleUITests: XCTestCase {
         app.buttons[A11y.controlsSubmit].tap()
         XCTAssertEqual(app.staticTexts[A11y.controlsStatus].label, "Submitted")
 
-        app.buttons[A11y.controlsAsyncSubmit].tap()
-        XCTAssertTrue(waitForLabel("Submitted asynchronously", on: app.staticTexts[A11y.controlsStatus]))
+        let asyncSubmit = app.buttons[A11y.controlsAsyncSubmit]
+        asyncSubmit.tap(withNumberOfTaps: 2, numberOfTouches: 1)
+        XCTAssertTrue(waitForLabel("Submitted asynchronously (1)", on: app.staticTexts[A11y.controlsStatus]))
 
         app.textFields[A11y.controlsReferral].tap()
         app.textFields[A11y.controlsReferral].typeText("ABC")
@@ -82,7 +83,7 @@ nonisolated final class SampleUITests: XCTestCase {
         app.buttons[A11y.listSubmit].tap()
         XCTAssertTrue(app.staticTexts[A11y.listTopError].waitForExistence(timeout: 2))
 
-        for _ in 0..<5 {
+        for _ in 0..<8 {
             let add = app.buttons[A11y.listAdd]
             XCTAssertTrue(scrollUntilExists(add, direction: .up))
             add.tap()
@@ -114,7 +115,7 @@ nonisolated final class SampleUITests: XCTestCase {
         launch(.dynamicList)
         XCTAssertTrue(app.descendants(matching: .any)[A11y.listScreen].waitForExistence(timeout: 3))
 
-        for _ in 0..<5 {
+        for _ in 0..<8 {
             let add = app.buttons[A11y.listAdd]
             XCTAssertTrue(scrollUntilExists(add, direction: .up))
             add.tap()
@@ -125,14 +126,14 @@ nonisolated final class SampleUITests: XCTestCase {
         first.tap()
         XCTAssertTrue(waitForKeyboardFocus(on: first))
 
-        for id in 2...5 {
+        for id in 2...8 {
             let next = app.buttons["Next"]
             XCTAssertTrue(next.waitForExistence(timeout: 2))
             XCTAssertTrue(next.isEnabled, "Next unexpectedly disabled before attendee-\(id)")
             next.tap()
             let expected = app.textFields[A11y.listName("attendee-\(id)")]
             let focusedExpected = waitForKeyboardFocus(on: expected)
-            let focusedIDs = (1...5).filter { id in
+            let focusedIDs = (1...8).filter { id in
                 let field = app.textFields[A11y.listName("attendee-\(id)")]
                 return field.exists && field.hasKeyboardFocus
             }
@@ -142,7 +143,7 @@ nonisolated final class SampleUITests: XCTestCase {
             )
         }
 
-        for id in stride(from: 4, through: 1, by: -1) {
+        for id in stride(from: 7, through: 1, by: -1) {
             let previous = app.buttons["Previous"]
             XCTAssertTrue(previous.isEnabled, "Previous unexpectedly disabled before attendee-\(id)")
             previous.tap()
@@ -150,16 +151,32 @@ nonisolated final class SampleUITests: XCTestCase {
         }
 
         dismissKeyboard()
+        XCTAssertFalse(app.buttons["Done"].waitForExistence(timeout: 2))
         let moveFirstDown = app.buttons[A11y.listMoveFirstDown]
         XCTAssertTrue(scrollUntilHittable(moveFirstDown, direction: .up))
         moveFirstDown.tap()
+        XCTAssertTrue(
+            waitForValue(
+                "attendee-2,attendee-1,attendee-3,attendee-4,attendee-5,attendee-6,attendee-7,attendee-8",
+                on: app.descendants(matching: .any)[A11y.listScreen]
+            )
+        )
 
         let second = app.textFields[A11y.listName("attendee-2")]
         XCTAssertTrue(scrollUntilHittable(second, direction: .down))
         second.tap()
         XCTAssertTrue(waitForKeyboardFocus(on: second))
         app.buttons["Next"].tap()
-        XCTAssertTrue(waitForKeyboardFocus(on: app.textFields[A11y.listName("attendee-1")]))
+        let firstAfterMove = app.textFields[A11y.listName("attendee-1")]
+        let focusedFirstAfterMove = waitForKeyboardFocus(on: firstAfterMove)
+        let focusedAfterMove = (1...8).filter { id in
+            let field = app.textFields[A11y.listName("attendee-\(id)")]
+            return field.exists && field.hasKeyboardFocus
+        }
+        XCTAssertTrue(
+            focusedFirstAfterMove,
+            "Expected attendee-1 after reordering; focused attendee IDs: \(focusedAfterMove)"
+        )
 
         dismissKeyboard()
         let removeFirst = app.buttons[A11y.listRemove("attendee-1")]
@@ -172,13 +189,54 @@ nonisolated final class SampleUITests: XCTestCase {
         XCTAssertTrue(waitForKeyboardFocus(on: second))
         app.buttons["Next"].tap()
         XCTAssertTrue(waitForKeyboardFocus(on: app.textFields[A11y.listName("attendee-3")]))
+
+        let third = app.textFields[A11y.listName("attendee-3")]
+        let removeThird = app.buttons[A11y.listRemove("attendee-3")]
+        XCTAssertTrue(scrollUntilHittable(removeThird, direction: .up))
+        removeThird.tap()
+        XCTAssertFalse(third.waitForExistence(timeout: 2))
+        XCTAssertFalse(app.buttons["Done"].waitForExistence(timeout: 2))
     }
 
     @MainActor
-    private func launch(_ scenario: Scenario) {
+    func testDynamicListReorderingUpdatesOffscreenFocusOrder() {
+        launch(.dynamicList, additionalArguments: ["--attendees=3"])
+        XCTAssertTrue(app.descendants(matching: .any)[A11y.listScreen].waitForExistence(timeout: 3))
+
+        let initialFirst = app.textFields[A11y.listName("attendee-1")]
+        XCTAssertTrue(scrollUntilHittable(initialFirst, direction: .down))
+        initialFirst.tap()
+        XCTAssertTrue(waitForKeyboardFocus(on: initialFirst))
+        dismissKeyboard()
+        XCTAssertFalse(app.buttons["Done"].waitForExistence(timeout: 2))
+
+        let moveFirstDown = app.buttons[A11y.listMoveFirstDown]
+        XCTAssertTrue(scrollUntilHittable(moveFirstDown, direction: .up))
+        moveFirstDown.tap()
+
+        let second = app.textFields[A11y.listName("attendee-2")]
+        XCTAssertTrue(scrollUntilHittable(second, direction: .down))
+        second.tap()
+        XCTAssertTrue(waitForKeyboardFocus(on: second))
+        app.buttons["Next"].tap()
+
+        let first = app.textFields[A11y.listName("attendee-1")]
+        let focusedFirst = waitForKeyboardFocus(on: first)
+        let focusedIDs = (1...3).filter { id in
+            let field = app.textFields[A11y.listName("attendee-\(id)")]
+            return field.exists && field.hasKeyboardFocus
+        }
+        XCTAssertTrue(focusedFirst, "Expected attendee-1; focused attendee IDs: \(focusedIDs)")
+    }
+
+    @MainActor
+    private func launch(
+        _ scenario: Scenario,
+        additionalArguments: [String] = []
+    ) {
         continueAfterFailure = false
         app = XCUIApplication()
-        app.launchArguments = ["UI_TESTING", "--scenario=\(scenario.rawValue)"]
+        app.launchArguments = ["UI_TESTING", "--scenario=\(scenario.rawValue)"] + additionalArguments
         app.launch()
     }
 
@@ -209,6 +267,15 @@ nonisolated final class SampleUITests: XCTestCase {
     @MainActor
     private func waitForKeyboardFocus(on element: XCUIElement) -> Bool {
         let predicate = NSPredicate(format: "hasKeyboardFocus == true")
+        return XCTWaiter.wait(
+            for: [XCTNSPredicateExpectation(predicate: predicate, object: element)],
+            timeout: 2
+        ) == .completed
+    }
+
+    @MainActor
+    private func waitForValue(_ value: String, on element: XCUIElement) -> Bool {
+        let predicate = NSPredicate(format: "value == %@", value)
         return XCTWaiter.wait(
             for: [XCTNSPredicateExpectation(predicate: predicate, object: element)],
             timeout: 2

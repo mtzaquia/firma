@@ -25,18 +25,10 @@ enum FormulaireFocusOrder {
         _ snapshot: [FormulairePath],
         with existing: [FormulairePath]
     ) -> [FormulairePath] {
-        let snapshot = snapshot.reduce(into: [FormulairePath]()) { fields, path in
-            if !fields.contains(path) {
-                fields.append(path)
-            }
-        }
+        let snapshot = uniqued(snapshot)
         guard !snapshot.isEmpty else { return existing }
 
-        var result = existing.reduce(into: [FormulairePath]()) { fields, path in
-            if !fields.contains(path) {
-                fields.append(path)
-            }
-        }
+        var result = uniqued(existing)
 
         let snapshotSet = Set(snapshot)
         let visibleIndices = result.indices.filter { snapshotSet.contains(result[$0]) }
@@ -71,24 +63,65 @@ enum FormulaireFocusOrder {
         return result
     }
 
-    static func previous(
+    static func candidates(
         in fields: [FormulairePath],
-        current: FormulairePath?
-    ) -> FormulairePath? {
-        guard let current, let index = fields.firstIndex(of: current), index > fields.startIndex else {
-            return nil
+        current: FormulairePath?,
+        direction: FormulaireFocusDirection
+    ) -> [FormulairePath] {
+        guard let current, let index = fields.firstIndex(of: current) else {
+            return []
         }
-        return fields[fields.index(before: index)]
+
+        switch direction {
+        case .previous:
+            return Array(fields[..<index].reversed())
+        case .next:
+            let next = fields.index(after: index)
+            return next < fields.endIndex ? Array(fields[next...]) : []
+        }
     }
 
-    static func next(
+    static func reconcilingElements(
         in fields: [FormulairePath],
-        current: FormulairePath?
-    ) -> FormulairePath? {
-        guard let current, let index = fields.firstIndex(of: current) else {
-            return nil
+        under listPath: FormulairePath,
+        ids: [AnyHashable]
+    ) -> [FormulairePath] {
+        let currentIDs = Set(ids)
+        let retained = fields.filter { field in
+            guard let id = field.elementID(directlyUnder: listPath) else {
+                return true
+            }
+            return currentIDs.contains(id)
         }
-        let next = fields.index(after: index)
-        return next < fields.endIndex ? fields[next] : nil
+
+        var fieldsByID: [AnyHashable: [FormulairePath]] = [:]
+        for field in retained {
+            guard let id = field.elementID(directlyUnder: listPath) else { continue }
+            fieldsByID[id, default: []].append(field)
+        }
+
+        let orderedElementFields = ids.flatMap { fieldsByID[$0] ?? [] }
+        let elementIndices = retained.indices.filter {
+            retained[$0].elementID(directlyUnder: listPath) != nil
+        }
+        guard elementIndices.count == orderedElementFields.count else {
+            return retained
+        }
+
+        var result = retained
+        for (index, field) in zip(elementIndices, orderedElementFields) {
+            result[index] = field
+        }
+        return result
     }
+
+    private static func uniqued(_ fields: [FormulairePath]) -> [FormulairePath] {
+        var seen: Set<FormulairePath> = []
+        return fields.filter { seen.insert($0).inserted }
+    }
+}
+
+enum FormulaireFocusDirection {
+    case previous
+    case next
 }

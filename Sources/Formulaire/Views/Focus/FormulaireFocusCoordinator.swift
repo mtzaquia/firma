@@ -24,72 +24,150 @@ import SwiftUI
 
 struct FormulaireFocusCoordinator {
     let focus: FocusState<FormulairePath?>.Binding
-    let renderedFields: Binding<[FormulairePath]>
-    let focusOrder: Binding<[FormulairePath]>
-    let pendingCandidates: Binding<[FormulairePath]>
+    let state: FormulaireFocusState
     let scrollProxy: ScrollViewProxy
 
-    func updateRenderedFields(_ fields: [FormulairePath]) {
-        renderedFields.wrappedValue = fields
-        let reconciledOrder = FormulaireFocusOrder.reconciling(
-            fields,
-            with: focusOrder.wrappedValue
-        )
-        if reconciledOrder != focusOrder.wrappedValue {
-            focusOrder.wrappedValue = reconciledOrder
+    func updateMountedFields(_ fields: [FormulairePath]) {
+        state.reconcileMountedFields(fields)
+
+        guard
+            let request = state.pendingRequest,
+            let candidate = request.candidates.first,
+            fields.contains(candidate)
+        else {
+            return
         }
+
+        scheduleFocusAssignment(to: candidate, requestID: request.id)
     }
 
     @discardableResult
     func focus(on field: FormulairePath) -> Bool {
-        guard focusOrder.wrappedValue.contains(field) else {
-            return false
-        }
-
-        attemptFocus(on: [field], clearingCurrentFocus: true)
+        requestFocus(on: [field], clearingCurrentFocus: true)
         return true
     }
 
-    func move(to field: FormulairePath?) {
-        guard let field else { return }
-        attemptFocus(on: [field], clearingCurrentFocus: false)
+    func canMove(_ direction: FormulaireFocusDirection) -> Bool {
+        state.pendingRequest == nil && !navigationCandidates(in: direction).isEmpty
+    }
+
+    func move(_ direction: FormulaireFocusDirection) {
+        guard state.pendingRequest == nil else { return }
+        requestFocus(
+            on: navigationCandidates(in: direction),
+            clearingCurrentFocus: false
+        )
     }
 
     func focusFirstError(in result: ValidationResult) {
-        attemptFocus(on: result.errorPaths, clearingCurrentFocus: true)
+        requestFocus(on: result.errorPaths, clearingCurrentFocus: true)
     }
 
-    private func attemptFocus(
+    func registerElementOrder(_ elementOrder: FormulaireElementOrder) {
+        Task { @MainActor in
+            state.registerElementOrder(elementOrder)
+        }
+    }
+
+    func removeElementOrders(in path: FormulairePath) {
+        Task { @MainActor in
+            state.removeElementOrders(in: path)
+        }
+    }
+
+    func dismiss() {
+        state.cancelPendingRequest()
+        focus.wrappedValue = nil
+    }
+
+    private func navigationCandidates(
+        in direction: FormulaireFocusDirection
+    ) -> [FormulairePath] {
+        FormulaireFocusOrder.candidates(
+            in: state.focusOrder,
+            current: focus.wrappedValue,
+            direction: direction
+        )
+    }
+
+    private func requestFocus(
         on candidates: [FormulairePath],
         clearingCurrentFocus: Bool
     ) {
-        guard let candidate = candidates.first else {
-            pendingCandidates.wrappedValue = []
+        state.cancelPendingRequest()
+        guard !candidates.isEmpty else { return }
+
+        let request = state.makeRequest(
+            candidates: candidates,
+            clearsCurrentFocus: clearingCurrentFocus
+        )
+        if request.clearsCurrentFocus {
+            focus.wrappedValue = nil
+        }
+        state.pendingRequest = request
+        advance(requestID: request.id)
+    }
+
+    private func advance(requestID: Int) {
+        guard
+            let request = state.pendingRequest,
+            request.id == requestID,
+            let candidate = request.candidates.first
+        else {
+            state.cancelPendingRequest()
             return
         }
 
-        if clearingCurrentFocus {
-            focus.wrappedValue = nil
-        }
-        pendingCandidates.wrappedValue = candidates
         scrollProxy.scrollTo(candidate, anchor: .center)
 
-        // A lazy Form can advertise a preference before the destination's
-        // native control is ready to accept focus. Give scrolling and mounting
-        // one layout pass before assigning the FocusState value.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-            guard pendingCandidates.wrappedValue.first == candidate else { return }
+        if state.mountedFields.contains(candidate) {
+            scheduleFocusAssignment(to: candidate, requestID: requestID)
+        } else {
+            scheduleStaleCandidateFallback(candidate, requestID: requestID)
+        }
+    }
 
-            if renderedFields.wrappedValue.contains(candidate) {
-                pendingCandidates.wrappedValue = []
-                focus.wrappedValue = candidate
-            } else {
-                focusOrder.wrappedValue.removeAll { $0 == candidate }
-                attemptFocus(
-                    on: Array(candidates.dropFirst()),
-                    clearingCurrentFocus: clearingCurrentFocus
-                )
+    private func scheduleFocusAssignment(
+        to candidate: FormulairePath,
+        requestID: Int
+    ) {
+        state.pendingTask?.cancel()
+        state.pendingTask = Task { @MainActor in
+            // The mounted-field preference is produced during layout. Yield so
+            // the native control can finish joining the focus hierarchy.
+            await Task.yield()
+            guard
+                !Task.isCancelled,
+                state.pendingRequest?.id == requestID,
+                state.pendingRequest?.candidates.first == candidate,
+                state.mountedFields.contains(candidate)
+            else {
+                return
             }
+
+            state.cancelPendingRequest()
+            focus.wrappedValue = candidate
+        }
+    }
+
+    private func scheduleStaleCandidateFallback(
+        _ candidate: FormulairePath,
+        requestID: Int
+    ) {
+        state.pendingTask?.cancel()
+        state.pendingTask = Task { @MainActor in
+            try? await Task.sleep(for: .seconds(1))
+            guard
+                !Task.isCancelled,
+                state.pendingRequest?.id == requestID,
+                state.pendingRequest?.candidates.first == candidate
+            else {
+                return
+            }
+
+            state.focusOrder.removeAll { $0 == candidate }
+            state.pendingRequest?.candidates.removeFirst()
+            advance(requestID: requestID)
         }
     }
 }

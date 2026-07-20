@@ -20,8 +20,6 @@
 //  SOFTWARE.
 //
 
-import Foundation
-
 /// An indirect reference for the key path of a ``Formulaire`` field.
 public typealias FieldPath<F: Formulaire, V> = KeyPath<F.Fields, FormulaireField<F, V>>
 
@@ -38,12 +36,6 @@ public struct FormulaireField<Root, Value>: Hashable {
         self.set = { root, newValue in root[keyPath: keyPath] = newValue }
     }
 
-    init(label: String, get: @escaping (Root) -> Value, set: @escaping (Root, Value) -> Void) {
-        self.label = label
-        self.get = get
-        self.set = set
-    }
-
     public func hash(into hasher: inout Hasher) {
         hasher.combine(label)
     }
@@ -51,15 +43,4 @@ public struct FormulaireField<Root, Value>: Hashable {
 
 public func == <R, V>(lhs: FormulaireField<R, V>, rhs: FormulaireField<R, V>) -> Bool {
     lhs.label == rhs.label
-}
-
-extension Formulaire {
-    subscript<V>(field field: FormulaireField<Self, V>) -> V {
-        get {
-            field.get(self)
-        }
-        set {
-            field.set(self, newValue)
-        }
-    }
 }

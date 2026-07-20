@@ -29,8 +29,7 @@ public extension FormulaireBuilder {
         focusable: Bool,
         @ViewBuilder content: (ControlBuilder<F, V>) -> Content
     ) -> some View {
-        let concreteField = F.__fields[keyPath: field]
-        let fieldPath = path.appending(field: concreteField.label)
+        let fieldPath = resolve(field).path
 
         return content(
             ControlBuilder(
