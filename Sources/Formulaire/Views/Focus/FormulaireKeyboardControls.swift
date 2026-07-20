@@ -25,9 +25,10 @@ import SwiftUI
 #if os(iOS)
 struct FormulaireKeyboardControls: View {
     let focusCoordinator: FormulaireFocusCoordinator
+    let iconOnlyDoneButton: Bool
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: iconOnlyDoneButton ? 24 : 12) {
             Button("Previous", systemImage: "chevron.up") {
                 focusCoordinator.move(.previous)
             }
@@ -42,16 +43,28 @@ struct FormulaireKeyboardControls: View {
 
             Spacer(minLength: 0)
 
-            Button("Done", systemImage: "checkmark") {
-                focusCoordinator.dismiss()
-            }
-            .labelStyle(.titleOnly)
-            .bold()
+            doneButton
         }
         .contentShape(Rectangle())
         .imageScale(.large)
         .fontWeight(.medium)
     }
 
+    @ViewBuilder
+    private var doneButton: some View {
+        if iconOnlyDoneButton {
+            Button("Done", systemImage: "checkmark") {
+                focusCoordinator.dismiss()
+            }
+            .labelStyle(.iconOnly)
+            .bold()
+        } else {
+            Button("Done", systemImage: "checkmark") {
+                focusCoordinator.dismiss()
+            }
+            .labelStyle(.titleOnly)
+            .bold()
+        }
+    }
 }
 #endif

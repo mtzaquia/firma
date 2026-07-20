@@ -26,11 +26,32 @@ extension View {
     @ViewBuilder
     func formulaireKeyboardToolbar(_ focusCoordinator: FormulaireFocusCoordinator) -> some View {
         #if os(iOS)
-        toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                if focusCoordinator.focus.wrappedValue != nil {
+        let isVisible = focusCoordinator.focus.wrappedValue != nil
+        let info = Bundle.main.infoDictionary
+        if #available(iOS 26, *), (info?["UIDesignRequiresCompatibility"] as? Bool) != true {
+            // An empty safeAreaBar retains a system-owned hit region. An inset
+            // collapses fully after dismissal while preserving focus identity.
+            safeAreaInset(edge: .bottom, spacing: 0) {
+                ZStack {
+                    if isVisible {
+                        FormulaireKeyboardControls(
+                            focusCoordinator: focusCoordinator,
+                            iconOnlyDoneButton: true
+                        )
+                        .padding()
+                        .glassEffect(.regular, in: .capsule)
+                        .transition(.blurReplace)
+                        .padding([.horizontal, .bottom])
+                    }
+                }
+                .animation(.snappy, value: isVisible)
+            }
+        } else {
+            toolbar {
+                ToolbarItemGroup(placement: .keyboard) {
                     FormulaireKeyboardControls(
-                        focusCoordinator: focusCoordinator
+                        focusCoordinator: focusCoordinator,
+                        iconOnlyDoneButton: false
                     )
                 }
             }

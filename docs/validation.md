@@ -1,54 +1,98 @@
 # Validation
 
-A model's `validate()` method describes rules. A validation pass controls lifecycle: it clears stale errors, runs those rules, and returns an immutable `ValidationResult` snapshot.
-
-## Start a pass
-
-From a view builder, prefer `validation()` when the caller needs errors and `validate()` when it only needs a Boolean.
-
-```swift
-let result = form.validation()
-if result.isValid {
-  save()
-}
-```
-
-Outside a view, call `model.runValidation()`. Calling the rule-producing `model.validate()` method directly does not start a fresh pass and is not a substitute for `runValidation()`.
-
-`ValidationResult.errors` is keyed by `FormulairePath`. Paths retain every nested field and the actual `Hashable` IDs of list elements, so unequal IDs cannot collide even if their hash values do.
-
-`ValidationResult.errorPaths` preserves the order in which validation produced those errors. Identified collections follow their current model order; Formulaire's validation engine never uses dictionary iteration order to choose the first invalid field. Callers constructing `ValidationResult` directly should supply `errorPaths` whenever order matters.
+Validation rules live beside the state they inspect. A validation pass clears stale errors, runs those rules, and returns an immutable `ValidationResult`.
 
 ## Add field errors
 
-Errors should conform to `LocalizedError` when their user-facing description matters.
+Implement `validate()` on the model and attach errors with `addError(_:for:)`:
 
 ```swift
+enum AccountError: LocalizedError {
+  case missingEmail
+  case weakPassword
+
+  var errorDescription: String? {
+    switch self {
+    case .missingEmail: "Enter an email address"
+    case .weakPassword: "Use at least eight characters"
+    }
+  }
+}
+
 func validate() {
   if email.isEmpty {
-    addError(ProfileError.missingEmail, for: \.email)
+    addError(AccountError.missingEmail, for: \.email)
+  }
+  if password.count < 8 {
+    addError(AccountError.weakPassword, for: \.password)
   }
 }
 ```
 
-One field has at most one current error. Adding another error for the same path in the same pass replaces the earlier one.
+Convenience controls render `error.localizedDescription`, so use `LocalizedError` when the message is user-facing. A field holds at most one error in the current pass; adding a second error at the same path replaces the first.
 
-## Compose nested validation
+Editing a value does not run validation automatically. The existing error remains visible until the next pass decides whether it still applies.
 
-Call `validate(_:)` from the parent rule method for nested models, optional models, and identified collections.
+## Start a pass
+
+From a view builder, call `validation()` when the caller needs the snapshot or `validate()` when it only needs a Boolean:
+
+```swift
+let result = form.validation()
+
+if result.isValid {
+  save(model)
+} else {
+  showErrorCount(result.errors.count)
+}
+```
+
+Outside a rendered form, call the model's `runValidation()`:
+
+```swift
+let result = model.runValidation()
+```
+
+> [!IMPORTANT]
+> Do not call `model.validate()` to start validation. That method only produces rules inside an active pass; `runValidation()` and the builder APIs own clearing, evaluation, and the returned snapshot.
+
+`submitButton` and `asyncSubmitButton` also start a fresh pass. Their actions run only for a valid result. An invalid submit asks the focus system to reveal the first rendered, focusable field in validation order.
+
+## Compose nested rules
+
+A parent decides which children participate by calling `validate(_:)`. The same API supports a nested model, an optional nested model, and an `IdentifiedArrayOf` of models:
 
 ```swift
 func validate() {
-  validate(\.address)
-  validate(\.alternateAddress)
+  if attendees.isEmpty {
+    addError(EventError.needsAttendee, for: \.attendees)
+  }
+
+  validate(\.venue)
+  validate(\.alternateVenue)
   validate(\.attendees)
 }
 ```
 
-Parent-level errors and descendant errors are distinct. For example, an empty attendees list can have an error at `attendees`, while each existing row can have errors beneath `attendees[row-id]`.
+An absent optional contributes no child errors. Identified collections validate in their current model order. Rendering a scope and validating a child are separate decisions: `form.scope(...)` creates bindings and identities for views, while `validate(...)` composes that child's rules into the parent pass.
 
-## Query errors
+Parent and descendant errors remain distinct. The `attendees` field can carry an empty-list error while existing rows carry errors at paths such as `attendees[guest-42].name`.
 
-In rendering code, `form.error(for:)` returns the exact field error and `form.errors(for:)` returns every error in that field's nested subtree.
+## Query current errors
 
-Validation snapshots do not update after creation. Run another pass to obtain a new result after editing the model.
+The builder exposes the current observable validation state:
+
+```swift
+let emailError = form.error(for: \.email)
+let addressErrors = form.errors(for: \.address)
+```
+
+`error(for:)` performs an exact lookup. `errors(for:)` includes an error on that field and every error below it, which is useful for section summaries.
+
+A `ValidationResult` is a snapshot and does not change as the model or validator changes. Its `errors` dictionary is keyed by `FormulairePath`; its `errorPaths` array preserves production order for consumers that need a deterministic first error.
+
+Paths retain every field component and each list element's actual `Hashable` ID. Unequal IDs therefore stay distinct even if their hash values collide. `FormulairePath.description` is suitable for diagnostics, but identity never depends on that string.
+
+When constructing a `ValidationResult` directly, supply `errorPaths` if ordering matters. Dictionary iteration order is not a first-error policy.
+
+Next: [Scoping](scoping.md) · [Rendering and focus](rendering.md#submission)

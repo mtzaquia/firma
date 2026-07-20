@@ -1,23 +1,27 @@
 # Getting started
 
-Formulaire turns the writable properties of an observable class into type-safe field metadata. The macro supports classes, requires `@Observable`, and ignores static, read-only, and computed getter-only properties.
+A Formulaire model is an observable class whose writable properties become type-safe fields. The model holds the current values and the rules; a builder turns those fields into bindings, controls, errors, and focus targets.
 
 ## Define a model
 
-Use explicit property types for public form models so the macro can expose their generated field metadata to other modules.
+Apply both `@Observable` and `@Formulaire`, then implement `validate()`:
 
 ```swift
 import Formulaire
 import Observation
 
+enum ProfileError: LocalizedError {
+  case missingName
+
+  var errorDescription: String? { "Enter a display name" }
+}
+
 @MainActor @Observable @Formulaire
-public final class ProfileForm {
-  public var displayName: String = ""
-  public var age: Int = 18
+final class ProfileForm {
+  var displayName: String = ""
+  var age: Int = 18
 
-  public init() {}
-
-  public func validate() {
+  func validate() {
     if displayName.isEmpty {
       addError(ProfileError.missingName, for: \.displayName)
     }
@@ -25,13 +29,35 @@ public final class ProfileForm {
 }
 ```
 
-Formulaire's runtime is main-actor isolated. Add `@MainActor` when the consuming target does not use main-actor default isolation.
+`@Formulaire` supports classes and requires `@Observable`. It generates metadata for writable instance properties. Static properties, constants, and getter-only computed properties do not become fields.
 
-## Render a form
+Formulaire's runtime API is main-actor isolated. Keep the model on `@MainActor` unless the consuming target already uses main-actor default isolation.
 
-`FormulaireView` supplies a SwiftUI `Form`, focus management, scrolling, and the keyboard toolbar.
+### Public models
+
+A model used from another module needs the usual public class, initializer, properties, and validation method. Give every public field an explicit type so the macro can expose matching public metadata:
 
 ```swift
+@MainActor @Observable @Formulaire
+public final class SettingsForm {
+  public var username: String = ""
+  public var notificationsEnabled: Bool = true
+
+  public init() {}
+
+  public func validate() {}
+}
+```
+
+The macro diagnoses a public writable property whose type exists only in its initializer expression.
+
+## Render the form
+
+Own the reference model with `@State` and pass a binding to `FormulaireView`. The container supplies a SwiftUI `Form`, validation state, scrolling, focus coordination, and the iOS keyboard controls.
+
+```swift
+import SwiftUI
+
 struct ProfileView: View {
   @State private var profile = ProfileForm()
 
@@ -39,27 +65,34 @@ struct ProfileView: View {
     FormulaireView(editing: $profile) { form in
       form.textField(for: \.displayName, label: "Display name")
       form.stepper(for: \.age, label: "Age", range: 0...120)
-      form.submitButton("Save") { save(profile) }
+
+      form.submitButton("Save") {
+        save(profile)
+      }
     }
   }
 }
 ```
 
-The field arguments are key paths into generated metadata rather than writable model key paths. That keeps the value type known and lets Formulaire attach a stable path to every control and error.
+Although `\.displayName` looks like a writable model key path, Swift infers a key path into the macro-generated field metadata. That metadata carries the value type and lets Formulaire derive a stable path for rendering and validation.
 
-## Bring your own container
+## Bring your own layout
 
-`FormulaireContent` provides the same builder and focus system without adding a `Form`, `List`, or scroll view.
+`FormulaireContent` installs the same builder and coordination system without adding a `Form`, `List`, or scroll view:
 
 ```swift
 FormulaireContent(editing: $profile) { form in
   ScrollView {
-    LazyVStack {
+    LazyVStack(alignment: .leading, spacing: 16) {
       form.textField(for: \.displayName, label: "Display name")
+      form.stepper(for: \.age, label: "Age", range: 0...120)
+      form.submitButton("Save") { save(profile) }
     }
     .padding()
   }
 }
 ```
 
-Continue with [Validation](validation.md) and [Rendering and focus](rendering.md).
+The content closure remains responsible for the complete visual hierarchy. Formulaire still observes rendered focusable controls, scrolls to requested identities, and keeps validation attached to the model.
+
+Next: [Validation](validation.md) · [Rendering and focus](rendering.md)

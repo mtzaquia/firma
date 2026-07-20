@@ -10,20 +10,19 @@
   "defaultOptions" : {
     "performanceAntipatternCheckerEnabled" : true,
     "targetForVariableExpansion" : {
-      "containerPath" : "container:Sample.xcodeproj",
+      "containerPath" : "container:SampleApp.xcodeproj",
       "identifier" : "BD91AE582E2FB5F200FF1805",
-      "name" : "Sample"
+      "name" : "SampleApp"
     }
   },
   "testTargets" : [
     {
       "target" : {
-        "containerPath" : "container:Sample.xcodeproj",
+        "containerPath" : "container:SampleApp.xcodeproj",
         "identifier" : "BD70AA142FE2A00000AA0001",
-        "name" : "SampleUITests"
+        "name" : "SampleAppUITests"
       }
     }
   ],
   "version" : 1
 }
-
