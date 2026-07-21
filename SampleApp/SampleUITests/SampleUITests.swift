@@ -13,34 +13,55 @@ nonisolated final class SampleUITests: XCTestCase {
         launch(.controls)
         XCTAssertTrue(app.scrollViews[A11y.controlsScreen].waitForExistence(timeout: 3))
 
+        let status = app.staticTexts[A11y.controlsStatus]
+        let emailError = app.staticTexts[A11y.controlsEmailError]
+
         app.buttons[A11y.controlsValidate].tap()
-        XCTAssertTrue(app.staticTexts[A11y.controlsStatus].label.contains("Invalid"))
-        XCTAssertTrue(app.staticTexts[A11y.controlsEmailError].label.contains("valid email"))
+        XCTAssertTrue(waitForLabelContaining("Invalid", on: status))
+        XCTAssertTrue(waitForLabelContaining("valid email", on: emailError))
 
         replaceText(in: app.textFields[A11y.controlsFullName], with: "Ada Lovelace")
         replaceText(in: app.textFields[A11y.controlsEmail], with: "ada@example.com")
         XCTAssertEqual(app.textFields[A11y.controlsFullName].value as? String, "Ada Lovelace")
         XCTAssertEqual(app.textFields[A11y.controlsEmail].value as? String, "ada@example.com")
+
+        let referral = app.textFields[A11y.controlsReferral]
+        let next = app.buttons["Next"]
+        XCTAssertTrue(next.waitForExistence(timeout: 2))
+        next.tap()
+        XCTAssertTrue(
+            waitForKeyboardFocus(on: referral),
+            "Next did not move keyboard focus to the custom referral field"
+        )
+        referral.typeText("ABC")
+
+        let validate = app.buttons[A11y.controlsValidate]
+        XCTAssertTrue(scrollUntilHittable(validate, direction: .up))
+        validate.tap()
+        XCTAssertTrue(waitForLabelContaining("Invalid", on: status))
+        XCTAssertTrue(
+            waitForKeyboardFocus(on: referral),
+            "Validation unexpectedly removed focus from the referral field"
+        )
+        referral.typeText("D")
+        XCTAssertEqual(referral.value as? String, "ABCD")
         dismissKeyboard()
 
-        app.buttons[A11y.controlsValidate].tap()
-        let status = app.staticTexts[A11y.controlsStatus]
+        validate.tap()
         XCTAssertTrue(
             waitForLabel("Valid", on: status),
             "Expected validation status to become Valid, got \(status.label)"
         )
         app.buttons[A11y.controlsSubmit].tap()
-        XCTAssertEqual(status.label, "Submitted")
+        XCTAssertTrue(waitForLabel("Submitted", on: status))
 
         let asyncSubmit = app.buttons[A11y.controlsAsyncSubmit]
         asyncSubmit.tap(withNumberOfTaps: 2, numberOfTouches: 1)
         XCTAssertTrue(waitForLabel("Submitted asynchronously (1)", on: status))
-
-        app.textFields[A11y.controlsReferral].tap()
-        app.textFields[A11y.controlsReferral].typeText("ABC")
-        dismissKeyboard()
-        app.buttons[A11y.controlsValidate].tap()
-        XCTAssertTrue(app.staticTexts[A11y.controlsStatus].label.contains("Invalid"))
+        XCTAssertTrue(
+            waitForEnabled(asyncSubmit),
+            "Async submit button did not return to its enabled state"
+        )
     }
 
     @MainActor
@@ -247,11 +268,27 @@ nonisolated final class SampleUITests: XCTestCase {
     @MainActor
     private func replaceText(in field: XCUIElement, with text: String) {
         XCTAssertTrue(field.waitForExistence(timeout: 2))
-        field.tap()
+        XCTAssertTrue(
+            focusTextField(field),
+            "Text field did not acquire keyboard focus"
+        )
         if let current = field.value as? String, !current.isEmpty {
             field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count))
         }
         field.typeText(text)
+    }
+
+    @MainActor
+    private func focusTextField(_ field: XCUIElement) -> Bool {
+        guard field.waitForExistence(timeout: 2) else { return false }
+
+        for _ in 0..<2 {
+            field.tap()
+            if waitForKeyboardFocus(on: field) {
+                return true
+            }
+        }
+        return false
     }
 
     @MainActor
@@ -266,6 +303,24 @@ nonisolated final class SampleUITests: XCTestCase {
     private func waitForLabel(_ label: String, on element: XCUIElement) -> Bool {
         let predicate = NSPredicate(format: "label == %@", label)
         return XCTWaiter.wait(for: [XCTNSPredicateExpectation(predicate: predicate, object: element)], timeout: 2) == .completed
+    }
+
+    @MainActor
+    private func waitForLabelContaining(_ text: String, on element: XCUIElement) -> Bool {
+        let predicate = NSPredicate(format: "label CONTAINS %@", text)
+        return XCTWaiter.wait(
+            for: [XCTNSPredicateExpectation(predicate: predicate, object: element)],
+            timeout: 2
+        ) == .completed
+    }
+
+    @MainActor
+    private func waitForEnabled(_ element: XCUIElement) -> Bool {
+        let predicate = NSPredicate(format: "isEnabled == true")
+        return XCTWaiter.wait(
+            for: [XCTNSPredicateExpectation(predicate: predicate, object: element)],
+            timeout: 2
+        ) == .completed
     }
 
     @MainActor
