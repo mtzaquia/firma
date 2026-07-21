@@ -21,7 +21,7 @@ let package = Package(
         .target(
             name: "Firma",
             dependencies: [
-                "FirmaMacros",
+                "FormObjectMacros",
                 .product(name: "IdentifiedCollections", package: "swift-identified-collections")
             ],
             swiftSettings: [
@@ -60,19 +60,19 @@ let package = Package(
             ]
         ),
         .macro(
-            name: "FirmaMacros",
+            name: "FormObjectMacros",
             dependencies: [
                 .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
                 .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
             ],
         ),
         .testTarget(
-            name: "FirmaMacroTests",
+            name: "FormObjectMacroTests",
             dependencies: [
-                "FirmaMacros",
+                "FormObjectMacros",
                 .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
             ],
-            path: "Tests/FirmaMacroTests"
+            path: "Tests/FormObjectMacroTests"
         ),
     ]
 )

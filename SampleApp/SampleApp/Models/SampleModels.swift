@@ -2,7 +2,7 @@ import Firma
 import Foundation
 import Observation
 
-@Observable @Firma
+@Observable @FormObject
 final class ControlsFormModel {
     var fullName: String = ""
     var email: String = ""
@@ -27,7 +27,7 @@ final class ControlsFormModel {
     }
 }
 
-@Observable @Firma
+@Observable @FormObject
 final class CountryFormModel {
     var code: String = ""
 
@@ -36,7 +36,7 @@ final class CountryFormModel {
     }
 }
 
-@Observable @Firma
+@Observable @FormObject
 final class AddressFormModel {
     var street: String = ""
     var city: String = ""
@@ -49,7 +49,7 @@ final class AddressFormModel {
     }
 }
 
-@Observable @Firma
+@Observable @FormObject
 final class AccountFormModel {
     var username: String = ""
     var primaryAddress: AddressFormModel = AddressFormModel()
@@ -63,7 +63,7 @@ final class AccountFormModel {
     }
 }
 
-@Observable @Firma
+@Observable @FormObject
 final class AttendeeFormModel: Identifiable {
     var id: String
     var name: String = ""
@@ -77,7 +77,7 @@ final class AttendeeFormModel: Identifiable {
     }
 }
 
-@Observable @Firma
+@Observable @FormObject
 final class EventFormModel {
     var eventName: String = "Sample meetup"
     var attendees: IdentifiedArrayOf<AttendeeFormModel> = []

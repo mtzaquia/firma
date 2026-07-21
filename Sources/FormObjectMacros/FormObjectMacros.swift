@@ -24,8 +24,8 @@ import SwiftCompilerPlugin
 import SwiftSyntaxMacros
 
 @main
-struct FirmaMacros: CompilerPlugin {
+struct FormObjectMacros: CompilerPlugin {
     var providingMacros: [Macro.Type] = [
-        FirmaMacro.self
+        FormObjectMacro.self
     ]
 }

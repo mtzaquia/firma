@@ -38,7 +38,7 @@ dependencies: [
 
 ## Five-minute start
 
-Describe the form as an observable class and add `@Firma`. Its `validate()` method contains the rules; `addError(_:for:)` attaches an error to generated field metadata with the familiar key-path syntax.
+Describe the form as an observable class and add `@FormObject`. Its `validate()` method contains the rules; `addError(_:for:)` attaches an error to generated field metadata with the familiar key-path syntax.
 
 ```swift
 import Firma
@@ -56,7 +56,7 @@ enum ProfileError: LocalizedError {
   }
 }
 
-@Observable @Firma
+@Observable @FormObject
 final class ProfileForm {
   var name: String = ""
   var email: String = ""

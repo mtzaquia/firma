@@ -4,7 +4,7 @@ A Firma model is an observable class whose writable properties become type-safe 
 
 ## Define a model
 
-Apply both `@Observable` and `@Firma`, then implement `validate()`:
+Apply both `@Observable` and `@FormObject`, then implement `validate()`:
 
 ```swift
 import Firma
@@ -16,7 +16,7 @@ enum ProfileError: LocalizedError {
   var errorDescription: String? { "Enter a display name" }
 }
 
-@Observable @Firma
+@Observable @FormObject
 final class ProfileForm {
   var displayName: String = ""
   var age: Int = 18
@@ -29,7 +29,7 @@ final class ProfileForm {
 }
 ```
 
-`@Firma` supports classes and requires `@Observable`. It generates metadata for writable instance properties. Static properties, constants, and getter-only computed properties do not become fields.
+`@FormObject` supports classes and requires `@Observable`. It generates metadata for writable instance properties. Static properties, constants, and getter-only computed properties do not become fields.
 
 Firma's runtime API is main-actor isolated. Keep the model on `@MainActor` unless the consuming target already uses main-actor default isolation.
 
@@ -38,7 +38,7 @@ Firma's runtime API is main-actor isolated. Keep the model on `@MainActor` unles
 A model used from another module needs the usual public class, initializer, properties, and validation method. Give every public field an explicit type so the macro can expose matching public metadata:
 
 ```swift
-@Observable @Firma
+@Observable @FormObject
 public final class SettingsForm {
   public var username: String = ""
   public var notificationsEnabled: Bool = true

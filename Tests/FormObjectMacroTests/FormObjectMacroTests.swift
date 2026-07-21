@@ -1,15 +1,15 @@
-import FirmaMacros
+import FormObjectMacros
 import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
 import XCTest
 
-final class FirmaMacroTests: XCTestCase {
-    private let macros: [String: Macro.Type] = ["Firma": FirmaMacro.self]
+final class FormObjectMacroTests: XCTestCase {
+    private let macros: [String: Macro.Type] = ["FormObject": FormObjectMacro.self]
 
     func testPublicGenericAndMultiBindingExpansion() {
         assertMacroExpansion(
             """
-            @Observable @Firma
+            @Observable @FormObject
             public final class Model<Value> {
                 public var name: String = ""
                 var count = 0, enabled = true
@@ -58,7 +58,7 @@ final class FirmaMacroTests: XCTestCase {
     func testOpenClassUsesPublicGeneratedWitnesses() {
         assertMacroExpansion(
             """
-            @Observable @Firma
+            @Observable @FormObject
             open class OpenModel {
                 public var name: String = ""
                 public func validate() {}
@@ -92,21 +92,21 @@ final class FirmaMacroTests: XCTestCase {
     func testRequiresClassAndObservable() {
         assertMacroExpansion(
             """
-            @Firma
+            @FormObject
             struct ValueModel {}
             """,
             expandedSource: """
             struct ValueModel {}
             """,
             diagnostics: [
-                DiagnosticSpec(message: "@Firma can only be applied to classes.", line: 1, column: 1)
+                DiagnosticSpec(message: "@FormObject can only be applied to classes.", line: 1, column: 1)
             ],
             macros: macros
         )
 
         assertMacroExpansion(
             """
-            @Firma
+            @FormObject
             final class ReferenceModel {
                 var value = ""
                 func validate() {}
@@ -120,7 +120,7 @@ final class FirmaMacroTests: XCTestCase {
             """,
             diagnostics: [
                 DiagnosticSpec(
-                    message: "Types using @Firma must also be annotated with @Observable.",
+                    message: "Types using @FormObject must also be annotated with @Observable.",
                     line: 1,
                     column: 1
                 )

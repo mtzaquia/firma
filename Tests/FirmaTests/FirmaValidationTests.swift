@@ -8,7 +8,7 @@ extension String: @retroactive LocalizedError {
     nonisolated public var errorDescription: String? { self }
 }
 
-@Observable @Firma
+@Observable @FormObject
 final class TestCountry {
     var code: String = ""
 
@@ -17,7 +17,7 @@ final class TestCountry {
     }
 }
 
-@Observable @Firma
+@Observable @FormObject
 final class TestAddress {
     var street: String = ""
     var city: String = ""
@@ -29,7 +29,7 @@ final class TestAddress {
     }
 }
 
-@Observable @Firma
+@Observable @FormObject
 final class TestPhone: Identifiable {
     var id: String
     var label: String = ""
@@ -41,7 +41,7 @@ final class TestPhone: Identifiable {
     }
 }
 
-@Observable @Firma
+@Observable @FormObject
 final class TestPerson {
     var name: String = ""
     var address: TestAddress = TestAddress()
@@ -65,7 +65,7 @@ private struct CollidingID: Hashable {
     func hash(into hasher: inout Hasher) { hasher.combine(0) }
 }
 
-@Observable @Firma
+@Observable @FormObject
 private final class CollidingItem: Identifiable {
     var id: CollidingID
     var value: String = ""
@@ -76,7 +76,7 @@ private final class CollidingItem: Identifiable {
     }
 }
 
-@Observable @Firma
+@Observable @FormObject
 private final class CollidingList {
     var items: IdentifiedArrayOf<CollidingItem> = []
     func validate() { validate(\.items) }

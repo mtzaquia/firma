@@ -34,9 +34,9 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "FirmaMacrosTests"
-               BuildableName = "FirmaMacrosTests"
-               BlueprintName = "FirmaMacrosTests"
+               BlueprintIdentifier = "FormObjectMacroTests"
+               BuildableName = "FormObjectMacroTests"
+               BlueprintName = "FormObjectMacroTests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>

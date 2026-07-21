@@ -25,17 +25,17 @@ import SwiftUI
 @attached(member, names: named(Fields), named(__fields), named(__validator))
 @attached(extension, conformances: Firma)
 /// A macro that allows a class to be used as the subject of ``FirmaContent``.
-public macro Firma() = #externalMacro(module: "FirmaMacros", type: "FirmaMacro")
+public macro FormObject() = #externalMacro(module: "FormObjectMacros", type: "FormObjectMacro")
 
 /// The protocol allowing a class to be used as the subject of ``FirmaContent``.
-/// - Important: You don't conform to this protocol directly. Use the ``Firma()`` macro instead.
+/// - Important: You don't conform to this protocol directly. Use the ``FormObject()`` macro instead.
 public protocol Firma {
     /// A function implementing validation logic for this subject.
     ///
     /// You can use ``addError(_:for:)`` to tag fields with errors, and/or ``validate(_:)`` on nested subjects to reuse their individual validation logic.
     ///
     /// ```swift
-    /// @Observable @Firma
+    /// @Observable @FormObject
     /// final class MyForm {
     ///   var name: String
     ///   var address: Address

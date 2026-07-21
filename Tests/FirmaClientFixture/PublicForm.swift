@@ -3,7 +3,7 @@ import Foundation
 import Observation
 
 @MainActor
-@Observable @Firma
+@Observable @FormObject
 public final class PublicForm {
     public var name: String = ""
     public var acceptsTerms: Bool = false
