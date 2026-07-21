@@ -25,7 +25,7 @@ struct FirmaElementOrder {
     let currentIDs: () -> [AnyHashable]
 }
 
-struct FirmaElementOrderSnapshot: Equatable {
+struct FirmaElementOrderSnapshot {
     let listPath: FirmaPath
     let ids: [AnyHashable]
 }

@@ -3,16 +3,16 @@ import Foundation
 import Observation
 
 @MainActor
-@Observable @FormObject
+@Observable @FormModel
 public final class PublicForm {
     public var name: String = ""
     public var acceptsTerms: Bool = false
 
     public init() {}
 
-    public func validate() {
+    public func validate(_ validation: ValidationContext<PublicForm>) {
         if name.isEmpty {
-            addError(PublicFormError.nameRequired, for: \.name)
+            validation.addError(PublicFormError.nameRequired, for: \.name)
         }
     }
 }

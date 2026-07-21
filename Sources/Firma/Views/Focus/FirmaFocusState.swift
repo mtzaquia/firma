@@ -63,8 +63,7 @@ final class FirmaFocusState {
 
         let observer = FirmaElementOrderObserver()
         elementOrderObservers[elementOrder.listPath] = observer
-        observer.start(observing: [elementOrder]) { [weak self] snapshots in
-            guard let snapshot = snapshots.first else { return }
+        observer.start(observing: elementOrder) { [weak self] snapshot in
             self?.updateElementOrder(snapshot)
         }
     }

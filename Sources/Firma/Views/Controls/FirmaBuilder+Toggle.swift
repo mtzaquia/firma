@@ -57,12 +57,12 @@ public extension FirmaBuilder {
     }
 }
 
-private struct FirmaToggle<F: Firma, Label: View>: View {
+private struct FirmaToggle<Label: View>: View {
     @Environment(\.firmaStyle) private var style
     let label: Label
     let accessibilityLabel: Text?
     let accessibilityIdentifier: String?
-    let builder: ControlBuilder<F, Bool>
+    let builder: ControlBuilder<Bool>
 
     var body: some View {
         VStack(alignment: .leading) {

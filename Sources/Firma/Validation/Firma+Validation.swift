@@ -20,36 +20,13 @@
 //  SOFTWARE.
 //
 
-import IdentifiedCollections
-
 public extension Firma {
-    /// Runs a complete validation pass, clearing stale errors first.
+    /// Runs a complete validation pass and returns its immutable result.
+    ///
+    /// Each pass clears stale errors before invoking
+    /// ``Firma/validate(_:)`` with a new ``ValidationContext``.
     @discardableResult
-    func runValidation() -> ValidationResult {
+    func validate() -> ValidationResult {
         __validator.evaluate(self, at: .root)
-    }
-
-    /// Attaches an error to a field during the current validation pass.
-    func addError<V>(_ error: any Error, for field: FieldPath<Self, V>) {
-        let concreteField = Self.__fields[keyPath: field]
-        __validator.addError(error, for: concreteField.label)
-    }
-
-    /// Reuses the validation rules of a nested Firma subject.
-    func validate<F: Firma>(_ nested: FieldPath<Self, F>) {
-        let concreteField = Self.__fields[keyPath: nested]
-        __validator.validateNested(concreteField.get(self), field: concreteField.label)
-    }
-
-    /// Reuses a nested subject's validation rules when the optional contains a value.
-    func validate<F: Firma>(_ nested: FieldPath<Self, F?>) {
-        let concreteField = Self.__fields[keyPath: nested]
-        __validator.validateNested(concreteField.get(self), field: concreteField.label)
-    }
-
-    /// Reuses the validation rules of every subject in an identified list.
-    func validate<F: Firma>(_ nested: FieldPath<Self, IdentifiedArrayOf<F>>) {
-        let concreteField = Self.__fields[keyPath: nested]
-        __validator.validateNested(concreteField.get(self), field: concreteField.label)
     }
 }

@@ -12,7 +12,6 @@ struct PublicClientTests {
 
         #expect(PublicForm.__fields[keyPath: name] == PublicForm.__fields.name)
         #expect(PublicForm.__fields[keyPath: terms] == PublicForm.__fields.acceptsTerms)
-        #expect(!form.runValidation().isValid)
+        #expect(!form.validate().isValid)
     }
 }
-

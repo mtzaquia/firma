@@ -44,7 +44,7 @@ struct FirmaHost<F: Firma, Content: View>: View {
                     focusCoordinator: focusCoordinator,
                     validator: root.wrappedValue.__validator,
                     path: .root,
-                    validateFunction: { root.wrappedValue.runValidation() }
+                    validateFunction: { root.wrappedValue.validate() }
                 )
             )
             .onPreferenceChange(FirmaFieldOrderPreferenceKey.self) { entries in

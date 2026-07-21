@@ -69,7 +69,7 @@ public extension FirmaBuilder {
 
 extension FirmaBuilder {
     func prepareForSubmission() -> Bool {
-        let result = validation()
+        let result = validate()
         guard result.isValid else {
             focusCoordinator.focusFirstError(in: result)
             return false

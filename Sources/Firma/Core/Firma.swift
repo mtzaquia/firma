@@ -24,32 +24,42 @@ import SwiftUI
 
 @attached(member, names: named(Fields), named(__fields), named(__validator))
 @attached(extension, conformances: Firma)
-/// A macro that allows a class to be used as the subject of ``FirmaContent``.
-public macro FormObject() = #externalMacro(module: "FormObjectMacros", type: "FormObjectMacro")
+/// A macro that allows an observable class to be used as the subject of ``FirmaContent``.
+///
+/// The macro generates type-safe field metadata, validation storage, and
+/// ``Firma`` conformance. Public writable fields require explicit type
+/// annotations so their generated metadata can use the same access level.
+public macro FormModel() = #externalMacro(module: "FormModelMacros", type: "FormModelMacro")
 
 /// The protocol allowing a class to be used as the subject of ``FirmaContent``.
-/// - Important: You don't conform to this protocol directly. Use the ``FormObject()`` macro instead.
+///
+/// Use the ``FormModel()`` macro instead of declaring conformance directly.
 public protocol Firma {
-    /// A function implementing validation logic for this subject.
+    /// Adds this subject's validation errors to a validation pass.
     ///
-    /// You can use ``addError(_:for:)`` to tag fields with errors, and/or ``validate(_:)`` on nested subjects to reuse their individual validation logic.
+    /// Use the supplied ``ValidationContext`` to attach errors and compose the
+    /// rules of nested subjects. Firma calls this method during
+    /// ``Firma/validate()``; do not invoke it directly to start validation.
     ///
     /// ```swift
-    /// @Observable @FormObject
+    /// @Observable @FormModel
     /// final class MyForm {
     ///   var name: String
     ///   var address: Address
     ///
-    ///   func validate() {
+    ///   func validate(_ validation: ValidationContext<MyForm>) {
     ///     if name.isEmpty {
-    ///       addError(RequiredFieldMissing(), for: \.name)
+    ///       validation.addError(RequiredFieldMissing(), for: \.name)
     ///     }
     ///  
-    ///     validate(\.address)
+    ///     validation.validate(\.address)
     ///   }
     /// }
     /// ```
-    func validate()
+    ///
+    /// - Parameter validation: The context for reporting errors and validating
+    ///   nested subjects in the current pass.
+    func validate(_ validation: ValidationContext<Self>)
 
     associatedtype Fields
 

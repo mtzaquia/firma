@@ -25,40 +25,39 @@ import Observation
 @MainActor
 final class FirmaElementOrderObserver {
     private var generation = 0
-    private var elementOrders: [FirmaElementOrder] = []
-    private var onUpdate: (([FirmaElementOrderSnapshot]) -> Void)?
+    private var elementOrder: FirmaElementOrder?
+    private var onUpdate: ((FirmaElementOrderSnapshot) -> Void)?
 
     func start(
-        observing elementOrders: [FirmaElementOrder],
-        onUpdate: @escaping ([FirmaElementOrderSnapshot]) -> Void
+        observing elementOrder: FirmaElementOrder,
+        onUpdate: @escaping (FirmaElementOrderSnapshot) -> Void
     ) {
         generation += 1
-        self.elementOrders = elementOrders
+        self.elementOrder = elementOrder
         self.onUpdate = onUpdate
         observe(generation: generation)
     }
 
     func stop() {
         generation += 1
-        elementOrders = []
+        elementOrder = nil
         onUpdate = nil
     }
 
     private func observe(generation: Int) {
         guard generation == self.generation else { return }
 
-        let snapshots = withObservationTracking {
-            elementOrders.map {
-                FirmaElementOrderSnapshot(
-                    listPath: $0.listPath,
-                    ids: $0.currentIDs()
-                )
-            }
+        guard let elementOrder else { return }
+        let snapshot = withObservationTracking {
+            FirmaElementOrderSnapshot(
+                listPath: elementOrder.listPath,
+                ids: elementOrder.currentIDs()
+            )
         } onChange: { [weak self] in
             Task { @MainActor in
                 self?.observe(generation: generation)
             }
         }
-        onUpdate?(snapshots)
+        onUpdate?(snapshot)
     }
 }

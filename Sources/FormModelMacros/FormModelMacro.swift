@@ -24,7 +24,7 @@ import SwiftDiagnostics
 import SwiftSyntax
 import SwiftSyntaxMacros
 
-struct FormObjectDiagnosticMessage: DiagnosticMessage {
+struct FormModelDiagnosticMessage: DiagnosticMessage {
     let message: String
     let diagnosticID: MessageID
     let severity: DiagnosticSeverity
@@ -32,11 +32,11 @@ struct FormObjectDiagnosticMessage: DiagnosticMessage {
     init(id: String, message: String, severity: DiagnosticSeverity = .error) {
         self.message = message
         self.severity = severity
-        self.diagnosticID = MessageID(domain: "FormObjectMacro", id: id)
+        self.diagnosticID = MessageID(domain: "FormModelMacro", id: id)
     }
 }
 
-public struct FormObjectMacro: MemberMacro, ExtensionMacro {
+public struct FormModelMacro: MemberMacro, ExtensionMacro {
     public static func expansion(
         of node: AttributeSyntax,
         attachedTo declaration: some DeclGroupSyntax,
@@ -66,9 +66,9 @@ public struct FormObjectMacro: MemberMacro, ExtensionMacro {
         guard let classDeclaration = declaration.as(ClassDeclSyntax.self) else {
             context.diagnose(Diagnostic(
                 node: Syntax(declaration),
-                message: FormObjectDiagnosticMessage(
+                message: FormModelDiagnosticMessage(
                     id: "class-only",
-                    message: "@FormObject can only be applied to classes."
+                    message: "@FormModel can only be applied to classes."
                 )
             ))
             return []
@@ -77,9 +77,9 @@ public struct FormObjectMacro: MemberMacro, ExtensionMacro {
         guard hasObservableAttribute(declaration) else {
             context.diagnose(Diagnostic(
                 node: Syntax(declaration),
-                message: FormObjectDiagnosticMessage(
+                message: FormModelDiagnosticMessage(
                     id: "requires-observable",
-                    message: "Types using @FormObject must also be annotated with @Observable."
+                    message: "Types using @FormModel must also be annotated with @Observable."
                 )
             ))
             return []
@@ -105,9 +105,9 @@ public struct FormObjectMacro: MemberMacro, ExtensionMacro {
                 guard let identifier = binding.pattern.as(IdentifierPatternSyntax.self)?.identifier.text else {
                     context.diagnose(Diagnostic(
                         node: Syntax(binding.pattern),
-                        message: FormObjectDiagnosticMessage(
+                        message: FormModelDiagnosticMessage(
                             id: "unsupported-pattern",
-                            message: "FormObject fields must use a simple property name."
+                            message: "FormModel fields must use a simple property name."
                         )
                     ))
                     continue
@@ -120,9 +120,9 @@ public struct FormObjectMacro: MemberMacro, ExtensionMacro {
                 if !propertyAccess.isEmpty, type == nil {
                     context.diagnose(Diagnostic(
                         node: Syntax(binding),
-                        message: FormObjectDiagnosticMessage(
+                        message: FormModelDiagnosticMessage(
                             id: "public-field-requires-type",
-                            message: "Public FormObject fields require an explicit type annotation so their generated field metadata can also be public."
+                            message: "Public FormModel fields require an explicit type annotation so their generated field metadata can also be public."
                         )
                     ))
                     continue
@@ -158,7 +158,7 @@ public struct FormObjectMacro: MemberMacro, ExtensionMacro {
     }
 }
 
-private extension FormObjectMacro {
+private extension FormModelMacro {
     static func hasObservableAttribute(_ declaration: some DeclGroupSyntax) -> Bool {
         declaration.attributes.contains { element in
             guard let attribute = element.as(AttributeSyntax.self) else { return false }

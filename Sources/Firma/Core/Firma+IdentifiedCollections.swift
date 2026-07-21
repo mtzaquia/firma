@@ -20,6 +20,6 @@
 //  SOFTWARE.
 //
 
-// Firma's public list APIs use IdentifiedArrayOf. Re-exporting the module is
-// an intentional source-compatibility convenience for existing clients.
+// Firma's public list APIs use IdentifiedArrayOf, so clients receive the type
+// alongside those APIs with a single `import Firma`.
 @_exported import IdentifiedCollections

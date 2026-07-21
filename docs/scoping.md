@@ -20,8 +20,8 @@ An error on the last control has a path such as `address.country.code`. This avo
 Scoping renders a child; it does not implicitly validate it. Compose the same relationship in the parent model's rules:
 
 ```swift
-func validate() {
-  validate(\.address)
+func validate(_ validation: ValidationContext<AccountForm>) {
+  validation.validate(\.address)
 }
 ```
 
@@ -46,11 +46,11 @@ if let alternate = form.scope(\.alternateAddress) {
 The parent may attach an error directly to the optional field, validate the child when present, or do both:
 
 ```swift
-func validate() {
+func validate(_ validation: ValidationContext<AccountForm>) {
   if alternateAddress == nil {
-    addError(AccountError.needsAlternateAddress, for: \.alternateAddress)
+    validation.addError(AccountError.needsAlternateAddress, for: \.alternateAddress)
   }
-  validate(\.alternateAddress)
+  validation.validate(\.alternateAddress)
 }
 ```
 

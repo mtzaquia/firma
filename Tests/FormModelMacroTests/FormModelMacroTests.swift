@@ -1,21 +1,21 @@
-import FormObjectMacros
+import FormModelMacros
 import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
 import XCTest
 
-final class FormObjectMacroTests: XCTestCase {
-    private let macros: [String: Macro.Type] = ["FormObject": FormObjectMacro.self]
+final class FormModelMacroTests: XCTestCase {
+    private let macros: [String: Macro.Type] = ["FormModel": FormModelMacro.self]
 
     func testPublicGenericAndMultiBindingExpansion() {
         assertMacroExpansion(
             """
-            @Observable @FormObject
+            @Observable @FormModel
             public final class Model<Value> {
                 public var name: String = ""
                 var count = 0, enabled = true
                 var inferred = 0, explicit: Bool = true
                 var values: [Value] = []
-                public func validate() {}
+                public func validate(_ validation: ValidationContext<Model<Value>>) {}
             }
             """,
             expandedSource: """
@@ -25,7 +25,7 @@ final class FormObjectMacroTests: XCTestCase {
                 var count = 0, enabled = true
                 var inferred = 0, explicit: Bool = true
                 var values: [Value] = []
-                public func validate() {}
+                public func validate(_ validation: ValidationContext<Model<Value>>) {}
 
                 public struct Fields {
                     public var name: FirmaField<Model<Value>, String> {
@@ -58,17 +58,17 @@ final class FormObjectMacroTests: XCTestCase {
     func testOpenClassUsesPublicGeneratedWitnesses() {
         assertMacroExpansion(
             """
-            @Observable @FormObject
+            @Observable @FormModel
             open class OpenModel {
                 public var name: String = ""
-                public func validate() {}
+                public func validate(_ validation: ValidationContext<OpenModel>) {}
             }
             """,
             expandedSource: """
             @Observable
             open class OpenModel {
                 public var name: String = ""
-                public func validate() {}
+                public func validate(_ validation: ValidationContext<OpenModel>) {}
 
                 public struct Fields {
                     public var name: FirmaField<OpenModel, String> {
@@ -92,35 +92,35 @@ final class FormObjectMacroTests: XCTestCase {
     func testRequiresClassAndObservable() {
         assertMacroExpansion(
             """
-            @FormObject
+            @FormModel
             struct ValueModel {}
             """,
             expandedSource: """
             struct ValueModel {}
             """,
             diagnostics: [
-                DiagnosticSpec(message: "@FormObject can only be applied to classes.", line: 1, column: 1)
+                DiagnosticSpec(message: "@FormModel can only be applied to classes.", line: 1, column: 1)
             ],
             macros: macros
         )
 
         assertMacroExpansion(
             """
-            @FormObject
+            @FormModel
             final class ReferenceModel {
                 var value = ""
-                func validate() {}
+                func validate(_ validation: ValidationContext<ReferenceModel>) {}
             }
             """,
             expandedSource: """
             final class ReferenceModel {
                 var value = ""
-                func validate() {}
+                func validate(_ validation: ValidationContext<ReferenceModel>) {}
             }
             """,
             diagnostics: [
                 DiagnosticSpec(
-                    message: "Types using @FormObject must also be annotated with @Observable.",
+                    message: "Types using @FormModel must also be annotated with @Observable.",
                     line: 1,
                     column: 1
                 )

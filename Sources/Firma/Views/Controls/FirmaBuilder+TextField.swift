@@ -30,7 +30,7 @@ public extension FirmaBuilder {
         placeholder: String? = nil,
         accessibilityIdentifier: String? = nil
     ) -> some View {
-        control(for: field, focusable: true) { builder in
+        controlWithInternalFocus(for: field) { builder in
             FirmaTextField(
                 label: Text(verbatim: label),
                 prompt: Text(verbatim: placeholder ?? "Enter \(label)"),
@@ -47,7 +47,7 @@ public extension FirmaBuilder {
         accessibilityIdentifier: String? = nil,
         @ViewBuilder label: () -> Label
     ) -> some View {
-        control(for: field, focusable: true) { builder in
+        controlWithInternalFocus(for: field) { builder in
             FirmaTextField(
                 label: label(),
                 prompt: prompt,
@@ -58,12 +58,12 @@ public extension FirmaBuilder {
     }
 }
 
-private struct FirmaTextField<F: Firma, Label: View>: View {
+private struct FirmaTextField<Label: View>: View {
     @Environment(\.firmaStyle) private var style
     let label: Label
     let prompt: Text?
     let accessibilityIdentifier: String?
-    let builder: ControlBuilder<F, String>
+    let builder: ControlBuilder<String>
 
     var body: some View {
         VStack(alignment: .leading) {

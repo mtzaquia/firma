@@ -22,21 +22,20 @@
 
 import SwiftUI
 
-public struct ControlBuilder<F: Firma, V> {
-    /// Stable identity for the field. Use it with ``focus`` when building a
-    /// custom focusable control.
+/// Bindings and field state for a custom control built by ``FirmaBuilder``.
+public struct ControlBuilder<V> {
+    /// Stable identity for the field.
     public var id: FirmaPath
 
     /// A binding to the value for this particular field, which can be used in native components.
     @Binding public var value: V
 
-    /// A binding for focus, so fields can hook into the focus system.
-    @FocusState.Binding public var focus: FirmaPath?
+    @FocusState.Binding var focus: FirmaPath?
 
     /// A property holding the error for this field, if any exist.
     public var error: (any Error)?
 
-    /// A flag indicating whether this field is currently focused, for convenience.
+    /// A flag indicating whether this field is currently focused.
     public var isFocused: Bool {
         focus == id
     }

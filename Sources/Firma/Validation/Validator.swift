@@ -24,30 +24,25 @@ import Observation
 
 /// Observable validation state owned by a ``Firma`` subject.
 ///
-/// Validation passes are started by ``Firma/runValidation()`` or a
-/// ``FirmaBuilder``. Calling a model's rule-producing `validate()` method
-/// directly intentionally does not start a new pass.
+/// Validation passes are started by ``Firma/validate()`` or a ``FirmaBuilder``.
 @Observable
 public final class Validator {
-    @ObservationIgnored
-    private var context: FirmaPath = .root
-
     private var state = FirmaValidationState()
 
-    public var errors: [FirmaPath: any Error] {
+    var errors: [FirmaPath: any Error] {
         state.errors
     }
 
     /// The current validation snapshot.
-    public var result: ValidationResult {
+    var result: ValidationResult {
         state.result
     }
 
     /// **[Internal use]** Firma models receive an instance from the macro.
     public init() {}
 
-    func addError(_ error: any Error, for field: String) {
-        state.add(error, at: context.appending(field: field))
+    func addError(_ error: any Error, at path: FirmaPath) {
+        state.add(error, at: path)
     }
 
     func removeErrors(in path: FirmaPath, includingPath: Bool = true) {
@@ -56,9 +51,9 @@ public final class Validator {
 
     func evaluate<F: Firma>(_ subject: F, at path: FirmaPath) -> ValidationResult {
         state.reset()
-        withContext(path) {
-            subject.validate()
-        }
+        subject.validate(
+            ValidationContext(subject: subject, validator: self, path: path)
+        )
         return result
     }
 
@@ -78,18 +73,15 @@ public final class Validator {
         return state.result(in: path)
     }
 
-    func validateNested<F: Firma>(_ nested: F, field: String) {
-        let path = context.appending(field: field)
+    func validateNested<F: Firma>(_ nested: F, at path: FirmaPath) {
         validateNested([(nested, path)], in: path)
     }
 
-    func validateNested<F: Firma>(_ nested: F?, field: String) {
-        let path = context.appending(field: field)
+    func validateNested<F: Firma>(_ nested: F?, at path: FirmaPath) {
         validateNested(nested.map { [($0, path)] } ?? [], in: path)
     }
 
-    func validateNested<F: Firma>(_ nested: IdentifiedArrayOf<F>, field: String) {
-        let listPath = context.appending(field: field)
+    func validateNested<F: Firma>(_ nested: IdentifiedArrayOf<F>, at listPath: FirmaPath) {
         validateNested(
             nested.map { ($0, listPath.appending(elementID: $0.id)) },
             in: listPath
@@ -106,13 +98,4 @@ public final class Validator {
         }
     }
 
-    private func withContext<T>(
-        _ path: FirmaPath,
-        perform operation: () throws -> T
-    ) rethrows -> T {
-        let previousContext = context
-        context = path
-        defer { context = previousContext }
-        return try operation()
-    }
 }

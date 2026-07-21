@@ -38,7 +38,7 @@ dependencies: [
 
 ## Five-minute start
 
-Describe the form as an observable class and add `@FormObject`. Its `validate()` method contains the rules; `addError(_:for:)` attaches an error to generated field metadata with the familiar key-path syntax.
+Describe the form as an observable class and add `@FormModel`. Its `validate(_:)` method receives a `ValidationContext`; use that context to attach errors to generated field metadata with the familiar key-path syntax.
 
 ```swift
 import Firma
@@ -56,18 +56,18 @@ enum ProfileError: LocalizedError {
   }
 }
 
-@Observable @FormObject
+@Observable @FormModel
 final class ProfileForm {
   var name: String = ""
   var email: String = ""
   var receivesUpdates: Bool = false
 
-  func validate() {
+  func validate(_ validation: ValidationContext<ProfileForm>) {
     if name.isEmpty {
-      addError(ProfileError.missingName, for: \.name)
+      validation.addError(ProfileError.missingName, for: \.name)
     }
     if !email.contains("@") {
-      addError(ProfileError.invalidEmail, for: \.email)
+      validation.addError(ProfileError.invalidEmail, for: \.email)
     }
   }
 }
@@ -103,7 +103,7 @@ struct ProfileView: View {
 
 The submit button starts a fresh validation pass. If the model is valid, it runs the action. If not, the built-in controls show their errors and Firma scrolls to and focuses the first rendered, focusable field with an error—even when that field lives in lazy content.
 
-`FirmaContent` never imposes a `Form`, `ScrollView`, grid, or other layout. Use `control(for:focusable:)` to connect a custom control to the same binding, validation, identity, and focus system.
+`FirmaContent` never imposes a `Form`, `ScrollView`, grid, or other layout. Use `control(for:focusable:)` to connect a custom control to the same binding, validation, identity, and focus system. When `focusable` is `true`, Firma applies the shared focus binding automatically.
 
 That is the core idea: the model owns the rules, scopes preserve field identity, and the builder coordinates rendering, validation, and focus.
 

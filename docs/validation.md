@@ -1,10 +1,10 @@
 # Validation
 
-Validation rules live beside the state they inspect. A validation pass clears stale errors, runs those rules, and returns an immutable `ValidationResult`.
+Validation rules live beside the state they inspect. A validation pass clears stale errors, supplies the model with a `ValidationContext`, and returns an immutable `ValidationResult`.
 
 ## Add field errors
 
-Implement `validate()` on the model and attach errors with `addError(_:for:)`:
+Implement `validate(_:)` on the model and attach errors through its context:
 
 ```swift
 enum AccountError: LocalizedError {
@@ -19,12 +19,12 @@ enum AccountError: LocalizedError {
   }
 }
 
-func validate() {
+func validate(_ validation: ValidationContext<AccountForm>) {
   if email.isEmpty {
-    addError(AccountError.missingEmail, for: \.email)
+    validation.addError(AccountError.missingEmail, for: \.email)
   }
   if password.count < 8 {
-    addError(AccountError.weakPassword, for: \.password)
+    validation.addError(AccountError.weakPassword, for: \.password)
   }
 }
 ```
@@ -35,10 +35,10 @@ Editing a value does not run validation automatically. The existing error remain
 
 ## Start a pass
 
-From a view builder, call `validation()` when the caller needs the snapshot or `validate()` when it only needs a Boolean:
+Call `validate()` on either a view builder or a model. Both forms start a pass and return a `ValidationResult`:
 
 ```swift
-let result = form.validation()
+let result = form.validate()
 
 if result.isValid {
   save(model)
@@ -47,30 +47,29 @@ if result.isValid {
 }
 ```
 
-Outside a rendered form, call the model's `runValidation()`:
+Outside a rendered form, use the same operation on the model:
 
 ```swift
-let result = model.runValidation()
+let result = model.validate()
 ```
 
-> [!IMPORTANT]
-> Do not call `model.validate()` to start validation. That method only produces rules inside an active pass; `runValidation()` and the builder APIs own clearing, evaluation, and the returned snapshot.
+The overloads have distinct roles: callers invoke zero-argument `validate()` to run a pass, while Firma invokes `validate(_:)` with a `ValidationContext` to collect the model's rules. App code should not call the context-taking overload directly.
 
 `submitButton` and `asyncSubmitButton` also start a fresh pass. Their actions run only for a valid result. An invalid submit asks the focus system to reveal the first rendered, focusable field in validation order.
 
 ## Compose nested rules
 
-A parent decides which children participate by calling `validate(_:)`. The same API supports a nested model, an optional nested model, and an `IdentifiedArrayOf` of models:
+A parent decides which children participate through its `ValidationContext`. The same `validate(_:)` context method supports a nested model, an optional nested model, and an `IdentifiedArrayOf` of models:
 
 ```swift
-func validate() {
+func validate(_ validation: ValidationContext<EventForm>) {
   if attendees.isEmpty {
-    addError(EventError.needsAttendee, for: \.attendees)
+    validation.addError(EventError.needsAttendee, for: \.attendees)
   }
 
-  validate(\.venue)
-  validate(\.alternateVenue)
-  validate(\.attendees)
+  validation.validate(\.venue)
+  validation.validate(\.alternateVenue)
+  validation.validate(\.attendees)
 }
 ```
 

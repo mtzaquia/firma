@@ -38,7 +38,7 @@ Both layouts use the same builder API.
 | `textField(for:...)` | `String` | Focusable text input with prompt, label styling, and error text. |
 | `toggle(for:...)` | `Bool` | Native toggle with label and error text. |
 | `stepper(for:...)` | `Int` | Native stepper with optional step and closed range. |
-| `control(for:focusable:...)` | Any | Binding, error, identity, and optional focus for an app-owned control. |
+| `control(for:focusable:...)` | Any | Binding, error, identity, and framework-managed optional focus for an app-owned control. |
 
 The stepper uses SwiftUI's range-aware initializer, so increment and decrement disable at the supplied boundaries.
 
@@ -68,14 +68,12 @@ DatePicker(
 )
 ```
 
-Use `control(for:focusable:)` when it should also receive the current error, stable path, and shared focus state:
+Use `control(for:focusable:)` when it should also receive the current error and stable path. Passing `focusable: true` binds the returned content to Firma's shared focus state:
 
 ```swift
 form.control(for: \.referralCode, focusable: true) { field in
   VStack(alignment: .leading) {
     TextField("Referral code", text: field.$value)
-      .focused(field.$focus, equals: field.id)
-
     if let error = field.error {
       Text(error.localizedDescription)
         .foregroundStyle(.red)
@@ -84,7 +82,7 @@ form.control(for: \.referralCode, focusable: true) { field in
 }
 ```
 
-Set `focusable: true` only when the control registers `field.$focus` with `field.id`. A non-text control such as a `DatePicker` can use `focusable: false` and still receive its binding and error.
+Set `focusable: true` when the returned content has one focus destination. Firma applies the focus binding automatically and registers the control in visual focus order. A non-text control such as a `DatePicker` can use `focusable: false` and still receive its binding and error.
 
 ## Focus
 

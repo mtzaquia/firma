@@ -62,12 +62,12 @@ public extension FirmaBuilder {
     }
 }
 
-private struct FirmaStepper<F: Firma, Label: View>: View {
+private struct FirmaStepper<Label: View>: View {
     let label: Label
     let step: Int
     let range: ClosedRange<Int>?
     let accessibilityIdentifier: String?
-    let builder: ControlBuilder<F, Int>
+    let builder: ControlBuilder<Int>
 
     var body: some View {
         VStack(alignment: .leading) {

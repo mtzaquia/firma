@@ -8,40 +8,40 @@ extension String: @retroactive LocalizedError {
     nonisolated public var errorDescription: String? { self }
 }
 
-@Observable @FormObject
+@Observable @FormModel
 final class TestCountry {
     var code: String = ""
 
-    func validate() {
-        if code.isEmpty { addError("Country code is required", for: \.code) }
+    func validate(_ validation: ValidationContext<TestCountry>) {
+        if code.isEmpty { validation.addError("Country code is required", for: \.code) }
     }
 }
 
-@Observable @FormObject
+@Observable @FormModel
 final class TestAddress {
     var street: String = ""
     var city: String = ""
     var country: TestCountry = TestCountry()
 
-    func validate() {
-        if street.isEmpty { addError("Street is required", for: \.street) }
-        validate(\.country)
+    func validate(_ validation: ValidationContext<TestAddress>) {
+        if street.isEmpty { validation.addError("Street is required", for: \.street) }
+        validation.validate(\.country)
     }
 }
 
-@Observable @FormObject
+@Observable @FormModel
 final class TestPhone: Identifiable {
     var id: String
     var label: String = ""
 
     init(id: String) { self.id = id }
 
-    func validate() {
-        if label.isEmpty { addError("Label is required", for: \.label) }
+    func validate(_ validation: ValidationContext<TestPhone>) {
+        if label.isEmpty { validation.addError("Label is required", for: \.label) }
     }
 }
 
-@Observable @FormObject
+@Observable @FormModel
 final class TestPerson {
     var name: String = ""
     var address: TestAddress = TestAddress()
@@ -49,14 +49,14 @@ final class TestPerson {
     var phones: IdentifiedArrayOf<TestPhone> = []
     var optionalAddress: TestAddress?
 
-    func validate() {
-        if name.isEmpty { addError("Name is required", for: \.name) }
-        if phones.isEmpty { addError("At least one phone is required", for: \.phones) }
-        if optionalAddress == nil { addError("An address is required", for: \.optionalAddress) }
-        validate(\.address)
-        validate(\.address2)
-        validate(\.phones)
-        validate(\.optionalAddress)
+    func validate(_ validation: ValidationContext<TestPerson>) {
+        if name.isEmpty { validation.addError("Name is required", for: \.name) }
+        if phones.isEmpty { validation.addError("At least one phone is required", for: \.phones) }
+        if optionalAddress == nil { validation.addError("An address is required", for: \.optionalAddress) }
+        validation.validate(\.address)
+        validation.validate(\.address2)
+        validation.validate(\.phones)
+        validation.validate(\.optionalAddress)
     }
 }
 
@@ -65,21 +65,23 @@ private struct CollidingID: Hashable {
     func hash(into hasher: inout Hasher) { hasher.combine(0) }
 }
 
-@Observable @FormObject
+@Observable @FormModel
 private final class CollidingItem: Identifiable {
     var id: CollidingID
     var value: String = ""
 
     init(id: CollidingID) { self.id = id }
-    func validate() {
-        if value.isEmpty { addError("Value is required", for: \.value) }
+    func validate(_ validation: ValidationContext<CollidingItem>) {
+        if value.isEmpty { validation.addError("Value is required", for: \.value) }
     }
 }
 
-@Observable @FormObject
+@Observable @FormModel
 private final class CollidingList {
     var items: IdentifiedArrayOf<CollidingItem> = []
-    func validate() { validate(\.items) }
+    func validate(_ validation: ValidationContext<CollidingList>) {
+        validation.validate(\.items)
+    }
 }
 
 @Observable
@@ -93,17 +95,17 @@ private final class TestIDStore {
 
 @Suite("Validation")
 struct FirmaValidationTests {
-    @Test("runValidation owns clearing and returns a snapshot")
+    @Test("validate owns clearing and returns a snapshot")
     func validationLifecycle() {
         let person = validPerson()
         person.name = ""
 
-        let invalid = person.runValidation()
+        let invalid = person.validate()
         #expect(!invalid.isValid)
         #expect(invalid.errors[field("name")] != nil)
 
         person.name = "Taylor"
-        let valid = person.runValidation()
+        let valid = person.validate()
         #expect(valid.isValid)
         #expect(person.__validator.errors.isEmpty)
     }
@@ -114,7 +116,7 @@ struct FirmaValidationTests {
         person.address.country.code = ""
         person.address2.country.code = ""
 
-        let result = person.runValidation()
+        let result = person.validate()
         #expect(result.errors[field("address", "country", "code")] != nil)
         #expect(result.errors[field("address2", "country", "code")] != nil)
         #expect(result.errors.count == 2)
@@ -127,7 +129,7 @@ struct FirmaValidationTests {
         let model = CollidingList()
         model.items = [first, second]
 
-        let result = model.runValidation()
+        let result = model.validate()
         let listPath = field("items")
         let firstPath = listPath.appending(elementID: first.id).appending(field: "value")
         let secondPath = listPath.appending(elementID: second.id).appending(field: "value")
@@ -147,7 +149,7 @@ struct FirmaValidationTests {
             return phone
         })
 
-        let result = person.runValidation()
+        let result = person.validate()
         let phones = field("phones")
         let expected = (2...5).map {
             phones.appending(elementID: "phone-\($0)").appending(field: "label")
@@ -161,7 +163,7 @@ struct FirmaValidationTests {
         let person = validPerson()
         person.address.street = ""
         person.address2.street = ""
-        _ = person.runValidation()
+        _ = person.validate()
 
         person.address.street = "Main"
         _ = person.__validator.replaceValidation(of: person.address, at: field("address"))
@@ -180,7 +182,7 @@ struct FirmaValidationTests {
         person.address = shared
         person.address2 = shared
 
-        let result = person.runValidation()
+        let result = person.validate()
         #expect(result.errors[field("address", "street")] != nil)
         #expect(result.errors[field("address2", "street")] != nil)
     }
@@ -189,13 +191,13 @@ struct FirmaValidationTests {
     func optionalValidation() {
         let person = validPerson()
         person.optionalAddress = nil
-        var result = person.runValidation()
+        var result = person.validate()
         #expect(result.errors[field("optionalAddress")] != nil)
 
         let address = TestAddress()
         address.country.code = "NL"
         person.optionalAddress = address
-        result = person.runValidation()
+        result = person.validate()
         #expect(result.errors[field("optionalAddress")] == nil)
         #expect(result.errors[field("optionalAddress", "street")] != nil)
     }
@@ -250,14 +252,12 @@ struct FirmaFocusOrderTests {
         let observer = FirmaElementOrderObserver()
         var receivedIDs: [AnyHashable] = []
         observer.start(
-            observing: [
-                FirmaElementOrder(
-                    listPath: field("items"),
-                    currentIDs: { store.ids.map { AnyHashable($0) } }
-                )
-            ]
-        ) { snapshots in
-            receivedIDs = snapshots.first?.ids ?? []
+            observing: FirmaElementOrder(
+                listPath: field("items"),
+                currentIDs: { store.ids.map { AnyHashable($0) } }
+            )
+        ) { snapshot in
+            receivedIDs = snapshot.ids
         }
 
         store.ids = ["second", "first"]
@@ -270,14 +270,12 @@ struct FirmaFocusOrderTests {
 
         let collectionObserver = FirmaElementOrderObserver()
         collectionObserver.start(
-            observing: [
-                FirmaElementOrder(
-                    listPath: field("phones"),
-                    currentIDs: { store.phones.map { AnyHashable($0.id) } }
-                )
-            ]
-        ) { snapshots in
-            receivedIDs = snapshots.first?.ids ?? []
+            observing: FirmaElementOrder(
+                listPath: field("phones"),
+                currentIDs: { store.phones.map { AnyHashable($0.id) } }
+            )
+        ) { snapshot in
+            receivedIDs = snapshot.ids
         }
 
         store.phones.move(fromOffsets: IndexSet(integer: 0), toOffset: 2)

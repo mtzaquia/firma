@@ -29,16 +29,10 @@ public struct FirmaBuilder<F: Firma> {
     let path: FirmaPath
     let validateFunction: () -> ValidationResult
 
-    /// Runs validation and returns an immutable snapshot of the relevant scope.
+    /// Runs a validation pass and returns the immutable result for this scope.
     @discardableResult
-    public func validation() -> ValidationResult {
+    public func validate() -> ValidationResult {
         return validateFunction()
-    }
-
-    /// Runs validation and reports whether the relevant scope is valid.
-    @discardableResult
-    public func validate() -> Bool {
-        validation().isValid
     }
 
     /// Requests focus for a field, scrolling lazy containers when necessary.
