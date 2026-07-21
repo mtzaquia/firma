@@ -1,4 +1,4 @@
-import Formulaire
+import Firma
 import SwiftUI
 
 struct ControlsFormView: View {
@@ -7,7 +7,7 @@ struct ControlsFormView: View {
     @State private var asyncSubmissionCount = 0
 
     var body: some View {
-        FormulaireContent(editing: $model) { form in
+        FirmaContent(editing: $model) { form in
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 16) {
                     scenarioHeader
@@ -119,7 +119,7 @@ struct ControlsFormView: View {
                 .padding()
             }
         }
-        .formulaireStyle(FormulaireStyle(errorColor: .orange, focusedLabelColor: .purple))
+        .firmaStyle(FirmaStyle(errorColor: .orange, focusedLabelColor: .purple))
         .navigationTitle("Controls")
         .navigationBarTitleDisplayMode(.inline)
         .accessibilityIdentifier(SampleAppAccessibility.controlsScreen)

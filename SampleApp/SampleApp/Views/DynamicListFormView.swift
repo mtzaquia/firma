@@ -1,4 +1,4 @@
-import Formulaire
+import Firma
 import SwiftUI
 
 struct DynamicListFormView: View {
@@ -20,7 +20,7 @@ struct DynamicListFormView: View {
     }
 
     var body: some View {
-        FormulaireContent(editing: $model) { form in
+        FirmaContent(editing: $model) { form in
             Form {
                 Section("Event") {
                     form.textField(for: \.eventName, label: "Event name")

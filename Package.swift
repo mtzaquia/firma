@@ -5,12 +5,12 @@ import PackageDescription
 import CompilerPluginSupport
 
 let package = Package(
-    name: "Formulaire",
+    name: "Firma",
     platforms: [.iOS(.v17), .macOS(.v14)],
     products: [
         .library(
-            name: "Formulaire",
-            targets: ["Formulaire"]
+            name: "Firma",
+            targets: ["Firma"]
         ),
     ],
     dependencies: [
@@ -19,9 +19,9 @@ let package = Package(
     ],
     targets: [
         .target(
-            name: "Formulaire",
+            name: "Firma",
             dependencies: [
-                "FormulaireMacros",
+                "FirmaMacros",
                 .product(name: "IdentifiedCollections", package: "swift-identified-collections")
             ],
             swiftSettings: [
@@ -31,9 +31,9 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "FormulaireTests",
+            name: "FirmaTests",
             dependencies: [
-                "Formulaire"
+                "Firma"
             ],
             swiftSettings: [
                 .defaultIsolation(MainActor.self),
@@ -42,37 +42,37 @@ let package = Package(
             ]
         ),
         .target(
-            name: "FormulaireClientFixture",
-            dependencies: ["Formulaire"],
-            path: "Tests/FormulaireClientFixture",
+            name: "FirmaClientFixture",
+            dependencies: ["Firma"],
+            path: "Tests/FirmaClientFixture",
             swiftSettings: [
                 .defaultIsolation(MainActor.self),
                 .enableUpcomingFeature("InferIsolatedConformances"),
             ]
         ),
         .testTarget(
-            name: "FormulaireClientTests",
-            dependencies: ["Formulaire", "FormulaireClientFixture"],
-            path: "Tests/FormulaireClientTests",
+            name: "FirmaClientTests",
+            dependencies: ["Firma", "FirmaClientFixture"],
+            path: "Tests/FirmaClientTests",
             swiftSettings: [
                 .defaultIsolation(MainActor.self),
                 .enableUpcomingFeature("InferIsolatedConformances"),
             ]
         ),
         .macro(
-            name: "FormulaireMacros",
+            name: "FirmaMacros",
             dependencies: [
                 .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
                 .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
             ],
         ),
         .testTarget(
-            name: "FormulaireMacroTests",
+            name: "FirmaMacroTests",
             dependencies: [
-                "FormulaireMacros",
+                "FirmaMacros",
                 .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
             ],
-            path: "Tests/FormulaireMacroTests"
+            path: "Tests/FirmaMacroTests"
         ),
     ]
 )

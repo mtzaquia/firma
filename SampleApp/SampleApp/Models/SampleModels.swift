@@ -1,8 +1,8 @@
-import Formulaire
+import Firma
 import Foundation
 import Observation
 
-@Observable @Formulaire
+@Observable @Firma
 final class ControlsFormModel {
     var fullName: String = ""
     var email: String = ""
@@ -27,7 +27,7 @@ final class ControlsFormModel {
     }
 }
 
-@Observable @Formulaire
+@Observable @Firma
 final class CountryFormModel {
     var code: String = ""
 
@@ -36,7 +36,7 @@ final class CountryFormModel {
     }
 }
 
-@Observable @Formulaire
+@Observable @Firma
 final class AddressFormModel {
     var street: String = ""
     var city: String = ""
@@ -49,7 +49,7 @@ final class AddressFormModel {
     }
 }
 
-@Observable @Formulaire
+@Observable @Firma
 final class AccountFormModel {
     var username: String = ""
     var primaryAddress: AddressFormModel = AddressFormModel()
@@ -63,7 +63,7 @@ final class AccountFormModel {
     }
 }
 
-@Observable @Formulaire
+@Observable @Firma
 final class AttendeeFormModel: Identifiable {
     var id: String
     var name: String = ""
@@ -77,7 +77,7 @@ final class AttendeeFormModel: Identifiable {
     }
 }
 
-@Observable @Formulaire
+@Observable @Firma
 final class EventFormModel {
     var eventName: String = "Sample meetup"
     var attendees: IdentifiedArrayOf<AttendeeFormModel> = []

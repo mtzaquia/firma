@@ -89,9 +89,9 @@ let addressErrors = form.errors(for: \.address)
 
 `error(for:)` performs an exact lookup. `errors(for:)` includes an error on that field and every error below it, which is useful for section summaries.
 
-A `ValidationResult` is a snapshot and does not change as the model or validator changes. Its `errors` dictionary is keyed by `FormulairePath`; its `errorPaths` array preserves production order for consumers that need a deterministic first error.
+A `ValidationResult` is a snapshot and does not change as the model or validator changes. Its `errors` dictionary is keyed by `FirmaPath`; its `errorPaths` array preserves production order for consumers that need a deterministic first error.
 
-Paths retain every field component and each list element's actual `Hashable` ID. Unequal IDs therefore stay distinct even if their hash values collide. `FormulairePath.description` is suitable for diagnostics, but identity never depends on that string.
+Paths retain every field component and each list element's actual `Hashable` ID. Unequal IDs therefore stay distinct even if their hash values collide. `FirmaPath.description` is suitable for diagnostics, but identity never depends on that string.
 
 When constructing a `ValidationResult` directly, supply `errorPaths` if ordering matters. Dictionary iteration order is not a first-error policy.
 

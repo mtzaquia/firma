@@ -1,8 +1,8 @@
-# 🖋️ Formulaire
+# 🖋️ Firma
 
-`Formulaire` is a type-safe abstraction layer to quickly build focus-aware, validated SwiftUI forms.
+`Firma` is a type-safe abstraction layer to quickly build focus-aware, validated SwiftUI forms.
 
-Keep editable state and validation rules together in an observable model. Formulaire turns that model into scoped field metadata, bindings, errors, and focus identities that stay correct across nested objects and dynamic collections.
+Keep editable state and validation rules together in an observable model. Firma turns that model into scoped field metadata, bindings, errors, and focus identities that stay correct across nested objects and dynamic collections.
 
 - Validate root fields, nested models, optionals, and identified collections.
 - Render ready-made text fields, toggles, and steppers, or connect any SwiftUI control.
@@ -11,7 +11,7 @@ Keep editable state and validation rules together in an observable model. Formul
 - Use a native SwiftUI `Form` or supply the complete layout yourself.
 
 ```swift
-FormulaireContent(editing: $profile) { form in
+FirmaContent(editing: $profile) { form in
   Form {
     form.textField(for: \.name, label: "Name")
     form.textField(for: \.email, label: "Email")
@@ -25,23 +25,23 @@ FormulaireContent(editing: $profile) { form in
 
 ## Install
 
-Formulaire 1.3.0 supports iOS 17+ and macOS 14+ and uses the Swift 6.2 package format.
+Firma 2.0.0 supports iOS 17+ and macOS 14+ and uses Swift 6.2.
 
 ```swift
 dependencies: [
   .package(
-    url: "https://github.com/mtzaquia/formulaire.git",
-    from: "1.3.0"
+    url: "https://github.com/mtzaquia/firma.git",
+    from: "2.0.0"
   ),
 ]
 ```
 
 ## Five-minute start
 
-Describe the form as an observable class and add `@Formulaire`. Its `validate()` method contains the rules; `addError(_:for:)` attaches an error to generated field metadata with the familiar key-path syntax.
+Describe the form as an observable class and add `@Firma`. Its `validate()` method contains the rules; `addError(_:for:)` attaches an error to generated field metadata with the familiar key-path syntax.
 
 ```swift
-import Formulaire
+import Firma
 import Observation
 
 enum ProfileError: LocalizedError {
@@ -56,7 +56,7 @@ enum ProfileError: LocalizedError {
   }
 }
 
-@MainActor @Observable @Formulaire
+@Observable @Firma
 final class ProfileForm {
   var name: String = ""
   var email: String = ""
@@ -73,9 +73,9 @@ final class ProfileForm {
 }
 ```
 
-Formulaire's runtime API is main-actor isolated. Add `@MainActor` when the consuming target does not already use main-actor default isolation.
+Firma's runtime API is main-actor isolated. Add `@MainActor` when the consuming target does not already use main-actor default isolation.
 
-Own the model with SwiftUI, then pass its binding to `FormulaireContent`. The app supplies the visual container:
+Own the model with SwiftUI, then pass its binding to `FirmaContent`. The app supplies the visual container:
 
 ```swift
 import SwiftUI
@@ -84,7 +84,7 @@ struct ProfileView: View {
   @State private var profile = ProfileForm()
 
   var body: some View {
-    FormulaireContent(editing: $profile) { form in
+    FirmaContent(editing: $profile) { form in
       Form {
         Section("Profile") {
           form.textField(for: \.name, label: "Name")
@@ -101,9 +101,9 @@ struct ProfileView: View {
 }
 ```
 
-The submit button starts a fresh validation pass. If the model is valid, it runs the action. If not, the built-in controls show their errors and Formulaire scrolls to and focuses the first rendered, focusable field with an error—even when that field lives in lazy content.
+The submit button starts a fresh validation pass. If the model is valid, it runs the action. If not, the built-in controls show their errors and Firma scrolls to and focuses the first rendered, focusable field with an error—even when that field lives in lazy content.
 
-`FormulaireContent` never imposes a `Form`, `ScrollView`, grid, or other layout. Use `control(for:focusable:)` to connect a custom control to the same binding, validation, identity, and focus system.
+`FirmaContent` never imposes a `Form`, `ScrollView`, grid, or other layout. Use `control(for:focusable:)` to connect a custom control to the same binding, validation, identity, and focus system.
 
 That is the core idea: the model owns the rules, scopes preserve field identity, and the builder coordinates rendering, validation, and focus.
 

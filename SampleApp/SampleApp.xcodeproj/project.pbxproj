@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		BD91AE692E2FB62000FF1805 /* Formulaire in Frameworks */ = {isa = PBXBuildFile; productRef = BD91AE682E2FB62000FF1805 /* Formulaire */; };
+		BD91AE692E2FB62000FF1805 /* Firma in Frameworks */ = {isa = PBXBuildFile; productRef = BD91AE682E2FB62000FF1805 /* Firma */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -50,7 +50,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BD91AE692E2FB62000FF1805 /* Formulaire in Frameworks */,
+				BD91AE692E2FB62000FF1805 /* Firma in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -118,7 +118,7 @@
 			);
 			name = SampleApp;
 			packageProductDependencies = (
-				BD91AE682E2FB62000FF1805 /* Formulaire */,
+				BD91AE682E2FB62000FF1805 /* Firma */,
 			);
 			productName = Sample;
 			productReference = BD91AE592E2FB5F200FF1805 /* SampleApp.app */;
@@ -219,7 +219,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = eu.lelfe.Formulaire.SampleUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = eu.lelfe.Firma.SampleUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -243,7 +243,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = eu.lelfe.Formulaire.SampleUITests;
+				PRODUCT_BUNDLE_IDENTIFIER = eu.lelfe.Firma.SampleUITests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = auto;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -391,7 +391,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Formulaire;
+				INFOPLIST_KEY_CFBundleDisplayName = Firma;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -407,7 +407,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = eu.lelfe.Formulaire.Sample;
+				PRODUCT_BUNDLE_IDENTIFIER = eu.lelfe.Firma.Sample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -438,7 +438,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = Formulaire;
+				INFOPLIST_KEY_CFBundleDisplayName = Firma;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -454,7 +454,7 @@
 				"LD_RUNPATH_SEARCH_PATHS[sdk=macosx*]" = "@executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 26.0;
 				MARKETING_VERSION = 1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = eu.lelfe.Formulaire.Sample;
+				PRODUCT_BUNDLE_IDENTIFIER = eu.lelfe.Firma.Sample;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
@@ -511,9 +511,9 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		BD91AE682E2FB62000FF1805 /* Formulaire */ = {
+		BD91AE682E2FB62000FF1805 /* Firma */ = {
 			isa = XCSwiftPackageProductDependency;
-			productName = Formulaire;
+			productName = Firma;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

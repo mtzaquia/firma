@@ -24,13 +24,17 @@ nonisolated final class SampleUITests: XCTestCase {
         dismissKeyboard()
 
         app.buttons[A11y.controlsValidate].tap()
-        XCTAssertEqual(app.staticTexts[A11y.controlsStatus].label, "Valid")
+        let status = app.staticTexts[A11y.controlsStatus]
+        XCTAssertTrue(
+            waitForLabel("Valid", on: status),
+            "Expected validation status to become Valid, got \(status.label)"
+        )
         app.buttons[A11y.controlsSubmit].tap()
-        XCTAssertEqual(app.staticTexts[A11y.controlsStatus].label, "Submitted")
+        XCTAssertEqual(status.label, "Submitted")
 
         let asyncSubmit = app.buttons[A11y.controlsAsyncSubmit]
         asyncSubmit.tap(withNumberOfTaps: 2, numberOfTouches: 1)
-        XCTAssertTrue(waitForLabel("Submitted asynchronously (1)", on: app.staticTexts[A11y.controlsStatus]))
+        XCTAssertTrue(waitForLabel("Submitted asynchronously (1)", on: status))
 
         app.textFields[A11y.controlsReferral].tap()
         app.textFields[A11y.controlsReferral].typeText("ABC")

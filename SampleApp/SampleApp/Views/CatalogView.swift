@@ -42,7 +42,7 @@ struct CatalogView: View {
                 Label("Keyboard focus order", systemImage: "keyboard")
             }
         }
-        .navigationTitle("Formulaire")
+        .navigationTitle("Firma")
         .accessibilityIdentifier(SampleAppAccessibility.catalog)
     }
 }

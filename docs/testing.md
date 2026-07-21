@@ -6,7 +6,7 @@ The sample application is both an API catalogue and a deterministic UI-test fixt
 
 The catalogue contains three focused screens:
 
-- **Controls and focus** uses `FormulaireContent`, every convenience control, a focusable custom control, manual validation, exact error lookup, programmatic focus, styling, synchronous submission, and asynchronous submission.
+- **Controls and focus** uses `FirmaContent`, every convenience control, a focusable custom control, manual validation, exact error lookup, programmatic focus, styling, synchronous submission, and asynchronous submission.
 - **Nesting** uses deep and optional scopes, parent and descendant errors, subtree summaries, and optional insertion and removal.
 - **Dynamic lists** uses an `IdentifiedArrayOf`, collection-level errors, stable row identity, insertion, deletion, reordering, and first-invalid focus through a long lazy form.
 

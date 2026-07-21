@@ -1,4 +1,4 @@
-import Formulaire
+import Firma
 import SwiftUI
 
 struct NestedFormView: View {
@@ -6,7 +6,7 @@ struct NestedFormView: View {
     @State private var status = "Not validated"
 
     var body: some View {
-        FormulaireContent(editing: $model) { form in
+        FirmaContent(editing: $model) { form in
             Form {
                 Section("Account") {
                     form.textField(for: \.username, label: "Username")

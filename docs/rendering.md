@@ -1,13 +1,13 @@
 # Rendering and focus
 
-Formulaire separates form behavior from layout. Choose the container the screen needs, then mix convenience controls with any custom SwiftUI view.
+Firma separates form behavior from layout. Choose the container the screen needs, then mix convenience controls with any custom SwiftUI view.
 
 ## Choose a layout
 
-`FormulaireContent` installs the builder, validation, scrolling, and focus coordination while the app owns the complete visual hierarchy. For a native SwiftUI form:
+`FirmaContent` installs the builder, validation, scrolling, and focus coordination while the app owns the complete visual hierarchy. For a native SwiftUI form:
 
 ```swift
-FormulaireContent(editing: $model) { form in
+FirmaContent(editing: $model) { form in
   Form {
     Section("Account") {
       form.textField(for: \.email, label: "Email")
@@ -19,7 +19,7 @@ FormulaireContent(editing: $model) { form in
 For a custom layout:
 
 ```swift
-FormulaireContent(editing: $model) { form in
+FirmaContent(editing: $model) { form in
   ScrollView {
     LazyVStack(spacing: 16) {
       form.textField(for: \.email, label: "Email")
@@ -98,7 +98,7 @@ if form.error(for: \.email) != nil {
 }
 ```
 
-The Boolean reports whether Formulaire accepted the request. Assignment can happen later, after a lazy destination scrolls into view and mounts, so the field may still disappear before focus is assigned.
+The Boolean reports whether Firma accepted the request. Assignment can happen later, after a lazy destination scrolls into view and mounts, so the field may still disappear before focus is assigned.
 
 On iOS, the keyboard controls move backward and forward through the retained visual order and dismiss the current field. Programmatic focus and invalid submission use the same candidate-based scroll, mount, and focus process. Removed candidates are skipped; newly mounted rows extend the order.
 
@@ -118,22 +118,22 @@ form.asyncSubmitButton(action: {
 }
 ```
 
-The success action does not run while the form is invalid. Instead, Formulaire requests the first focusable error in validation order.
+The success action does not run while the form is invalid. Instead, Firma requests the first focusable error in validation order.
 
 The asynchronous action runs in a main-actor task. Its button disables while that task is active, duplicate taps are ignored, and the task is cancelled if the button disappears. The action should cooperate with cancellation; the app remains responsible for progress, error, and retry presentation.
 
 ## Styling
 
-`formulaireStyle(_:)` changes the convenience controls in one environment subtree:
+`firmaStyle(_:)` changes the convenience controls in one environment subtree:
 
 ```swift
-FormulaireContent(editing: $model) { form in
+FirmaContent(editing: $model) { form in
   Form {
     // ...
   }
 }
-.formulaireStyle(
-  FormulaireStyle(
+.firmaStyle(
+  FirmaStyle(
     errorColor: .orange,
     focusedLabelColor: .purple,
     labelColor: .secondary,

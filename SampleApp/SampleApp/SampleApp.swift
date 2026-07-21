@@ -4,7 +4,7 @@ extension String: @retroactive LocalizedError {
     nonisolated public var errorDescription: String? { self }
 }
 @main
-struct FormulaireSampleApp: App {
+struct FirmaSampleApp: App {
     init() {
         SampleAppUITesting.configure()
     }

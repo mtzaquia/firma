@@ -54,11 +54,11 @@ func validate() {
 }
 ```
 
-SwiftUI can briefly retain an old child view while removing an optional. During that transition, Formulaire keeps the last value readable, ignores stale writes, and removes descendant focus registrations and errors once the child is gone.
+SwiftUI can briefly retain an old child view while removing an optional. During that transition, Firma keeps the last value readable, ignores stale writes, and removes descendant focus registrations and errors once the child is gone.
 
 ## Identified collections
 
-Formulaire uses `IdentifiedArrayOf` from `swift-identified-collections` so row identity follows each element's `ID` rather than an array index.
+Firma uses `IdentifiedArrayOf` from `swift-identified-collections` so row identity follows each element's `ID` rather than an array index.
 
 ```swift
 ForEach(model.attendees) { attendee in
