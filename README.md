@@ -6,7 +6,7 @@ Keep editable state and validation rules together in an observable model. Firma 
 
 - Validate root fields, nested models, optionals, and identified collections.
 - Render ready-made text fields, toggles, and steppers, or connect any SwiftUI control.
-- Move focus in visual order and reveal the first invalid field in lazy content.
+- Move focus in view-tree declaration order and reveal the first invalid field in lazy content.
 - Read an exact field error or collect every error below a form section.
 - Use a native SwiftUI `Form` or supply the complete layout yourself.
 

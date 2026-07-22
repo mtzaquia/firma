@@ -27,7 +27,7 @@ public extension FirmaBuilder {
     ///
     /// Pass `focusable: true` when `content` contains a single focus destination.
     /// Firma binds that content to its shared focus state and includes it in
-    /// visual focus order automatically.
+    /// view-tree declaration order automatically.
     ///
     /// - Parameters:
     ///   - field: The field represented by the custom control.
@@ -55,21 +55,10 @@ public extension FirmaBuilder {
             }
         }
         .id(fieldPath)
-        .background {
-            if focusable {
-                GeometryReader { proxy in
-                    Color.clear.preference(
-                        key: FirmaFieldOrderPreferenceKey.self,
-                        value: [
-                            FirmaFieldOrderEntry(
-                                path: fieldPath,
-                                frame: proxy.frame(in: .global)
-                            )
-                        ]
-                    )
-                }
-            }
-        }
+        .preference(
+            key: FirmaFieldOrderPreferenceKey.self,
+            value: focusable ? [fieldPath] : []
+        )
     }
 
     internal func controlWithInternalFocus<V, Content: View>(
@@ -87,18 +76,9 @@ public extension FirmaBuilder {
             )
         )
         .id(fieldPath)
-        .background {
-            GeometryReader { proxy in
-                Color.clear.preference(
-                    key: FirmaFieldOrderPreferenceKey.self,
-                    value: [
-                        FirmaFieldOrderEntry(
-                            path: fieldPath,
-                            frame: proxy.frame(in: .global)
-                        )
-                    ]
-                )
-            }
-        }
+        .preference(
+            key: FirmaFieldOrderPreferenceKey.self,
+            value: [fieldPath]
+        )
     }
 }

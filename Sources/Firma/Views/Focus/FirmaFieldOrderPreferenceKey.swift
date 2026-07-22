@@ -22,40 +22,14 @@
 
 import SwiftUI
 
-struct FirmaFieldOrderEntry: Equatable {
-    let path: FirmaPath
-    let frame: CGRect
-}
-
 struct FirmaFieldOrderPreferenceKey: PreferenceKey {
-    static var defaultValue: [FirmaFieldOrderEntry] = []
+    static var defaultValue: [FirmaPath] = []
 
     static func reduce(
-        value: inout [FirmaFieldOrderEntry],
-        nextValue: () -> [FirmaFieldOrderEntry]
+        value: inout [FirmaPath],
+        nextValue: () -> [FirmaPath]
     ) {
-        var indices: [FirmaPath: Int] = [:]
-        for index in value.indices {
-            indices[value[index].path] = index
-        }
-        for entry in nextValue() {
-            if let index = indices[entry.path] {
-                value[index] = entry
-            } else {
-                indices[entry.path] = value.endIndex
-                value.append(entry)
-            }
-        }
-    }
-
-    static func orderedPaths(from entries: [FirmaFieldOrderEntry]) -> [FirmaPath] {
-        entries
-            .sorted { lhs, rhs in
-                if abs(lhs.frame.minY - rhs.frame.minY) > 0.5 {
-                    return lhs.frame.minY < rhs.frame.minY
-                }
-                return lhs.frame.minX < rhs.frame.minX
-            }
-            .map(\.path)
+        var seen = Set(value)
+        value.append(contentsOf: nextValue().filter { seen.insert($0).inserted })
     }
 }

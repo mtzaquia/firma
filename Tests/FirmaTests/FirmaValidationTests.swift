@@ -288,7 +288,7 @@ struct FirmaFocusOrderTests {
         collectionObserver.stop()
     }
 
-    @Test("next and previous follow rendered order")
+    @Test("next and previous follow retained declaration order")
     func focusOrder() {
         let fields = [field("name"), field("email"), field("address", "street")]
 
@@ -409,18 +409,18 @@ struct FirmaFocusOrderTests {
         #expect(order == [event, second, third, submit])
     }
 
-    @Test("field order follows visual position, not preference reduction order")
-    func visualFieldOrder() {
+    @Test("field order preserves preference view-tree order")
+    func declarationFieldOrder() {
         let first = field("first")
         let second = field("second")
         let third = field("third")
-        let entries = [
-            FirmaFieldOrderEntry(path: third, frame: CGRect(x: 0, y: 300, width: 100, height: 40)),
-            FirmaFieldOrderEntry(path: first, frame: CGRect(x: 0, y: 100, width: 100, height: 40)),
-            FirmaFieldOrderEntry(path: second, frame: CGRect(x: 0, y: 200, width: 100, height: 40)),
-        ]
+        var order = FirmaFieldOrderPreferenceKey.defaultValue
 
-        #expect(FirmaFieldOrderPreferenceKey.orderedPaths(from: entries) == [first, second, third])
+        FirmaFieldOrderPreferenceKey.reduce(value: &order) { [third] }
+        FirmaFieldOrderPreferenceKey.reduce(value: &order) { [first, third] }
+        FirmaFieldOrderPreferenceKey.reduce(value: &order) { [second] }
+
+        #expect(order == [third, first, second])
     }
 
     @Test("missing fields between visible anchors are pruned")

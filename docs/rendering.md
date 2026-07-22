@@ -82,11 +82,11 @@ form.control(for: \.referralCode, focusable: true) { field in
 }
 ```
 
-Set `focusable: true` when the returned content has one focus destination. Firma applies the focus binding automatically and registers the control in visual focus order. A non-text control such as a `DatePicker` can use `focusable: false` and still receive its binding and error.
+Set `focusable: true` when the returned content has one focus destination. Firma applies the focus binding automatically and registers the control in view-tree declaration order. A non-text control such as a `DatePicker` can use `focusable: false` and still receive its binding and error.
 
 ## Focus
 
-Focusable controls register in rendered visual order, not model declaration order. Dynamic insertion, deletion, and reordering update that order; removing the focused control clears focus.
+Focusable controls register in SwiftUI view-tree declaration order, not model property order or measured frame position. A `ForEach` contributes its mounted controls in the collection's current order. Dynamic insertion, deletion, and reordering update the retained order; removing the focused control clears focus.
 
 Request a field programmatically with `form.focus(on:)`:
 
@@ -98,7 +98,7 @@ if form.error(for: \.email) != nil {
 
 The Boolean reports whether Firma accepted the request. Assignment can happen later, after a lazy destination scrolls into view and mounts, so the field may still disappear before focus is assigned.
 
-On iOS, the keyboard controls move backward and forward through the retained visual order and dismiss the current field. Programmatic focus and invalid submission use the same candidate-based scroll, mount, and focus process. Removed candidates are skipped; newly mounted rows extend the order.
+On iOS, the keyboard controls move backward and forward through the retained declaration order and dismiss the current field. Programmatic focus and invalid submission use the same candidate-based scroll, mount, and focus process. Removed candidates are skipped; newly mounted rows extend the order.
 
 ## Submission
 

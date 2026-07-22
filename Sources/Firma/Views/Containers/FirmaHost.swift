@@ -47,10 +47,8 @@ struct FirmaHost<F: Firma, Content: View>: View {
                     validateFunction: { root.wrappedValue.validate() }
                 )
             )
-            .onPreferenceChange(FirmaFieldOrderPreferenceKey.self) { entries in
-                focusCoordinator.updateMountedFields(
-                    FirmaFieldOrderPreferenceKey.orderedPaths(from: entries)
-                )
+            .onPreferenceChange(FirmaFieldOrderPreferenceKey.self) { paths in
+                focusCoordinator.updateMountedFields(paths)
             }
             .firmaKeyboardToolbar(focusCoordinator)
         }

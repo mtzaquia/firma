@@ -87,7 +87,7 @@ nonisolated final class SampleUITests: XCTestCase {
     }
 
     @MainActor
-    func testKeyboardNavigationUsesRenderedFieldOrder() {
+    func testKeyboardNavigationUsesDeclarationOrder() {
         launch(.controls)
         let name = app.textFields[A11y.controlsFullName]
         let email = app.textFields[A11y.controlsEmail]
